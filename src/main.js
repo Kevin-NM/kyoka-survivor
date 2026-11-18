@@ -833,7 +833,7 @@ function openLevelUp(force) {
   state = 'levelup'; offers = force || makeOffers(); selIdx = 0; lvOpenT = performance.now(); Snd.fx.levelup();
   const t = T(), box = $('cards'); box.innerHTML = '';
   offers.forEach((id, i) => {
-    const evo = id.startsWith('evo:'), key = evo ? 'evo_' + id.slice(4) : id, bst = !!BOOST[id];
+    const evo = id.startsWith('evo:'), key = evo ? 'evo_' + id.slice(4) : G.evo[id] ? 'evo_' + id : id, bst = !!BOOST[id]; // an evolved weapon levelled past MAX keeps its evolved name and art
     const l = evo || bst ? 0 : lvOf(id), max = evo || bst ? 0 : MAXLV[id] || 0, b = document.createElement('button'), ov = !evo && !bst && l >= max && max > 0;
     const cat = evo ? 'c-evo' : bst ? 'c-pass c-boost' : id === 'seal' ? 'c-seal' : PASSIVES.includes(id) || id === 'oyaki' ? 'c-pass' : 'c-wep';
     b.className = `card ${cat}` + (i === 0 ? ' sel' : ''); b.style.animationDelay = (i * 0.07) + 's';

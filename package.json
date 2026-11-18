@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "test": "node test/save.test.mjs && node test/meta.test.mjs && node tools/gen-save-docs.mjs --check"
+    "test": "node test/save.test.mjs && node test/meta.test.mjs && node test/runcode.test.mjs && node tools/gen-save-docs.mjs --check"
   },
   "keywords": [],
   "author": "",
