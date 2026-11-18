@@ -4,7 +4,13 @@
 // a code for a stage this save hasn't opened is rejected (and accepted with the all-unlock code).
 import './mkshots.mjs';
 import { chromium } from 'playwright-core';
-const ROOT = decodeURI(new URL('..', import.meta.url).pathname), URL_ = 'file://' + ROOT + 'dist/index.html';
+import { createServer } from 'http';
+import { readFileSync } from 'fs';
+const ROOT = decodeURI(new URL('..', import.meta.url).pathname);
+// served over http, not file://: headless Chrome sometimes drops a file:// page's whole localStorage on reload, which made this test flaky
+const srv = createServer((q, s) => { s.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); s.end(readFileSync(ROOT + 'dist/index.html')); });
+await new Promise(r => srv.listen(0, '127.0.0.1', r));
+const URL_ = `http://127.0.0.1:${srv.address().port}/index.html`;
 let n = 0; const ok = (c, m) => { if (!c) throw new Error('FAIL: ' + m); n++; console.log('ok -', m); };
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const errs = [];
@@ -27,7 +33,7 @@ await p.screenshot({ path: 'shots/runcode-zh.png' });
 ok(snap.coins === (await p.evaluate(() => window.__kyoka.profile.coins)), 'pausing does not bank coins');
 await p.click('#rc-close');
 // reload: continue dialog -> つづきから restores
-await p.reload(); await ready(p);
+await p.waitForTimeout(300); await p.reload(); await ready(p);
 ok(await vis(p, 'resumeask'), 'continue dialog appears after reload');
 ok(/上次/.test(await p.textContent('#ra-title')), 'dialog title in zh-TW');
 await p.screenshot({ path: 'shots/resume-ask-zh.png' });
@@ -46,11 +52,11 @@ await p.screenshot({ path: 'shots/runcode-enter-zh.png' });
 await p.click('#ci-back');
 // 最初から discards
 await p.evaluate(() => { const k = window.__kyoka; k.select('kyon', 'apple'); k.start(); k.G.t = 40; k.pause(); });
-await p.reload(); await ready(p);
+await p.waitForTimeout(300); await p.reload(); await ready(p);
 ok(await vis(p, 'resumeask'), 'dialog again for a new unfinished run');
 await p.click('#ra-no'); await p.waitForTimeout(100);
 ok(!(await vis(p, 'resumeask')) && !(await p.evaluate(() => window.__kyoka.savedRunCode)), '最初から discards the saved run');
-await p.reload(); await ready(p); ok(!(await vis(p, 'resumeask')), 'no dialog after discarding');
+await p.waitForTimeout(300); await p.reload(); await ready(p); ok(!(await vis(p, 'resumeask')), 'no dialog after discarding');
 // dying clears the saved run
 await p.evaluate(() => { const k = window.__kyoka; k.start(); k.G.t = 20; k.pause(); }); ok(!!(await p.evaluate(() => window.__kyoka.savedRunCode)), 'run saved while paused');
 await p.evaluate(() => { const k = window.__kyoka; document.getElementById('resumebtn').click(); k.end(false); }); ok(!(await p.evaluate(() => window.__kyoka.savedRunCode)), 'game over clears the saved run');
@@ -68,6 +74,44 @@ const why = await q.evaluate(r => window.__kyoka.runProblem(r), hqCode);
 ok(why === 'locked', 'a code for a stage this save has not opened is rejected');
 await q.evaluate(c => { const k = window.__kyoka; k.setProfile(k.decode(c).profile); }, process.env.ALLCODE);
 ok((await q.evaluate(r => window.__kyoka.runProblem(r), hqCode)) === null, '... and accepted with the all-unlock code');
-await b.close();
+// a saved run that becomes locked (another save restored) is kept, not silently deleted: the dialog says why; keep / discard
+{
+  const ctx3 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); await ctx3.addInitScript(() => { if (!localStorage.getItem('kyoka-lang')) localStorage.setItem('kyoka-lang', 'zh'); });
+  const w = await page(ctx3); await w.goto(URL_); await ready(w);
+  await w.evaluate(c => { const k = window.__kyoka; k.setProfile(k.decode(c).profile); k.select('kyon', 'hq'); k.start(); k.G.t = 61; k.give('lariat'); k.pause(); }, process.env.ALLCODE);
+  const hq = await w.evaluate(() => window.__kyoka.savedRunCode); ok(!!hq, 'hq run saved with the all-unlock save');
+  await w.evaluate(() => window.__kyoka.setProfile({})); // a smaller save replaces everything (the run stays in storage)
+  await w.waitForTimeout(300); await w.reload(); await ready(w);
+  const d1 = await w.evaluate(() => ({ vis: !document.getElementById('resumeask').classList.contains('hide'), title: document.getElementById('ra-title').textContent, why: document.getElementById('ra-why-t').textContent, code: document.getElementById('ra-code').textContent, yes: document.getElementById('ra-yes').textContent, no: document.getElementById('ra-no').textContent, stored: window.__kyoka.savedRunCode }));
+  ok(d1.vis && /沒辦法繼續/.test(d1.title) && /還沒解鎖/.test(d1.why) && !!d1.stored && d1.code === d1.stored && d1.yes === '先保留' && d1.no === '捨棄', 'locked saved run: dialog explains, shows the code, nothing deleted ' + JSON.stringify(d1));
+  await w.screenshot({ path: 'shots/resume-locked-zh.png' });
+  await w.click('#ra-yes'); await w.waitForTimeout(100);
+  ok(!(await vis(w, 'resumeask')) && (await w.evaluate(() => window.__kyoka.savedRunCode)) === d1.stored, '先保留 closes the dialog and keeps the code');
+  await w.evaluate(c => { const k = window.__kyoka; k.setProfile(k.decode(c).profile); }, process.env.ALLCODE); // the original save is back
+  await w.waitForTimeout(300); await w.reload(); await ready(w);
+  ok(await vis(w, 'resumeask') && /上次/.test(await w.textContent('#ra-title')) && !(await vis(w, 'ra-why')), 'after restoring the original save the normal continue dialog is back');
+  await w.click('#ra-yes'); await w.waitForTimeout(200);
+  ok(await w.evaluate(() => window.__kyoka.state === 'play' && window.__kyoka.G.sid === 'hq' && Math.floor(window.__kyoka.G.t) === 61), 'and the kept run resumes');
+  // a code that fails its checks: dialog without stage info, 捨棄 removes it
+  await w.evaluate(() => { const k = window.__kyoka; k.pause(); const c = k.runCode(); document.getElementById('quitbtn').click(); localStorage.setItem('kyoka-run', c.slice(0, -1) + (c.endsWith('2') ? '3' : '2')); }); // back on the title, then a typo in the stored code
+  await w.waitForTimeout(300); await w.reload(); await ready(w);
+  const d2 = await w.evaluate(() => ({ vis: !document.getElementById('resumeask').classList.contains('hide'), why: document.getElementById('ra-why-t').textContent, info: !document.getElementById('ra-info').classList.contains('hide') }));
+  ok(d2.vis && /沒有通過檢查/.test(d2.why) && !d2.info, 'broken saved code: dialog says it failed the checks ' + JSON.stringify(d2));
+  await w.click('#ra-no'); await w.waitForTimeout(100);
+  ok(!(await vis(w, 'resumeask')) && !(await w.evaluate(() => window.__kyoka.savedRunCode)), '捨棄 removes it');
+  // a finished run ('used') is still dropped silently
+  await w.evaluate(() => { const k = window.__kyoka; k.select('kyon', 'apple'); k.start(); k.G.t = 30; k.pause(); const c = k.runCode(); document.getElementById('quitbtn').click(); localStorage.setItem('kyoka-run', c); });
+  await w.waitForTimeout(300); await w.reload(); await ready(w);
+  ok(!(await vis(w, 'resumeask')) && !(await w.evaluate(() => window.__kyoka.savedRunCode)), 'a finished run is dropped without a dialog');
+  for (const lang of ['ja', 'en']) { // the reason texts exist in every language
+    await w.evaluate(([c, l]) => { localStorage.setItem('kyoka-lang', l); const k = window.__kyoka; k.setProfile(k.decode(c).profile); k.select('kyon', 'hq'); k.start(); k.G.t = 50; k.pause(); k.setProfile({}); }, [process.env.ALLCODE, lang]);
+    await w.waitForTimeout(300); await w.reload(); await ready(w);
+    const t = await w.evaluate(() => [document.getElementById('ra-title').textContent, document.getElementById('ra-why-t').textContent, document.getElementById('ra-yes').textContent, document.getElementById('ra-no').textContent]);
+    ok(t.every(x => x && !/undefined/.test(x)) && await vis(w, 'ra-why'), `locked dialog in ${lang}: ${t.join(' / ')}`);
+    await w.screenshot({ path: `shots/resume-locked-${lang}.png` }); await w.click('#ra-no'); await w.waitForTimeout(100);
+  }
+  await ctx3.close();
+}
+await b.close(); srv.close();
 if (errs.length) throw new Error('console errors: ' + errs.slice(0, 3).join(' | '));
 console.log(`runsave: ${n} checks passed, console errors: none`);
