@@ -46,6 +46,8 @@ export function encodeRun(r) {
   for (let i = 0; i < L; i++) { s = ALPHA[Number(x % 31n)] + s; x /= 31n; }
   return s.match(/.{4}/g).join('-');
 }
+// read-only description of the layout, for tools/gen-save-docs.mjs
+export const RUN_LAYOUT = { ver: VER, fixed: FIXED, saveLens: [...SAVE_LENS], spBits: 7, boostBits: 8, crcBits: 16, crcPoly: 0x1021 };
 export const isRunLen = n => n >= 20 && n % 4 === 0 && !SAVE_LENS.has(n) && n <= 120;
 // -> run object or null
 export function decodeRun(str) {

@@ -103,6 +103,7 @@ On Hard and Geki-muzu, foe HP and numbers ramp up over the first 2 minutes. From
 
 ## Save codes
 
+- How the codes are built (layout, bit widths, checksum, versions, checks, storage keys): [docs/save-code.en.md](docs/save-code.en.md)
 - Progress auto-saves to the browser (localStorage).
 - The result and pause screens show a 104-character "password" code (復活の呪文-style, 26 groups of 4) with a Copy button. On another device, enter it from the title screen with "じゅもんを入力". Entering a code replaces your current save with exactly what the code holds (nothing is merged, so an older code can't be used to farm coins).
 - The code holds coins, debt, shop upgrades (including stacking levels), achievements, secret codes used, the day ichigo was last used, the last difficulty, and for each stage its best time and kills (rounded to 5 s, up to 42:35, and 20 kills; only the time for the 10 new stages, so kills aren't shown there after a restore) plus the hardest difficulty cleared there. The browser's own save keeps exact records for each difficulty.
@@ -125,6 +126,7 @@ On Hard and Geki-muzu, foe HP and numbers ramp up over the first 2 minutes. From
 - "🔖 Resume code" on the pause menu shows a resume code of about 48 characters. Enter it with "🔖 Resume code" on the title screen to keep playing, even in another browser.
 - Coins are banked once, when a run ends. A finished run's resume code no longer works, so coins can't be doubled.
 - A resume code for a stage or character this save hasn't unlocked is refused (fine after the all-unlock code).
+- If the run saved in this browser can't continue (for example, after restoring a save that hasn't unlocked its stage), it isn't deleted: the dialog says why and shows its code, with "Keep it" or "Discard". Only a run that is already over is removed silently.
 
 ## All-unlock code
 
@@ -155,7 +157,7 @@ Type them into "✨ ひみつのコード" on the title screen (hiragana, kataka
 ```sh
 npm i                 # esbuild + three.js
 node build.mjs        # bundles src/ into one dist/index.html, copied to ./index.html (favicon inlined as data URIs)
-npm test              # unit tests for save codes and meta (shop, achievements, encyclopedia)
+npm test              # unit tests for save codes and meta (shop, achievements, encyclopedia); docs/save-code tables match the source
 ```
 
 Browser tests use headless Chrome through playwright-core (`cd test && npm i`). Screenshots go to `shots/` (gitignored).
@@ -171,7 +173,7 @@ Browser tests use headless Chrome through playwright-core (`cd test && npm i`). 
 | `node test/lvcards.mjs` | Phone level-up cards: number, name, stars and NEW never collide |
 | `node test/cine.mjs` | Special-move sequence: game frozen, foes cleared at the end, skippable the second time, capped sparks (key-frame shots at 390 and 960) |
 | `node test/special.mjs` | Special move: gauge rate, button, on-screen foes cleared, capped boss damage, kept in resume codes |
-| `node test/runsave.mjs` | Mid-run save: pause → resume code, reload → continue, a code can't be used twice |
+| `node test/runsave.mjs` | Mid-run save: pause → resume code, reload → continue, a code can't be used twice, a locked or broken saved run is kept with its reason (keep / discard) |
 | `node test/afk.mjs road geki` | Endless with a maxed build: standing still should fall around 8–10 min; `KITE=1` runs a simple kiting bot instead (aim: 15–20 min). One short scripted run each |
 | `node test/save-ui.mjs` | Save and guide screens |
 | `node test/textfit.mjs` | Text overflow on every screen in all 3 languages |

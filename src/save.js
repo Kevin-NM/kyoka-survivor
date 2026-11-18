@@ -323,3 +323,11 @@ export function loadLocal() {
   return null;
 }
 export function saveLocal(p) { try { localStorage.setItem(KEY, JSON.stringify(fixProfile(p))); return true; } catch (e) { return false; } }
+
+// read-only description of every code layout, for tools/gen-save-docs.mjs (the docs tables are generated from this)
+export const SAVE_LAYOUT = {
+  alphabet: ALPHA, crcBits: V_CRC, crcPoly: 0x80F, v1: { len: V1_LEN, data: V1_DATA, crcBits: V1_CRC, crcPoly: 0x233, fields: V1 },
+  v2: { len: V2_LEN, data: V2_DATA, fields: V2 }, v3: { len: V3_LEN, data: V3_DATA, fields: V3 },
+  fmt: Object.fromEntries(Object.entries(FMT).map(([v, f]) => [v, { len: f.len, data: f.data, fields: f.fields, stages: f.stages, upg: f.upg || UPG10 }])),
+  T_UNIT, K_UNIT, keys: { save: KEY, old: [KEY_V2, KEY_V1] }
+};
