@@ -62,8 +62,8 @@ Guide Kyon, fight with strawberries and seals, and survive for 5 minutes!
 - **Boss treasure**: the Flower Chapel boss drops a cake shaped like a pro-wrestling ring.
 - **Strawberry Coins and a shop** with permanent upgrades (you can even borrow). The shop has three tabs: "⭐ Basics", "🎀 きょん goods" (きょんカフェ = slow HP regen, 熱唱タオル = less boss damage, ハムナンバーカード = a level-up at the start) and "📈 Keep growing" (damage, HP, speed, pickup range, coins and XP; buy them again and again, each level a little pricier).
 - **Kyon encyclopedia (70 pages), 64 achievements, and an endless mode.**
-- **Grow forever**: once every weapon and item is maxed (or the slots are full), level-ups offer small stacking boosts such as Damage +3% and Max HP +5 instead of food cards.
-- **Endless mode**: keep going after the 5-minute clear. Foes get stronger every minute and elite hordes come more and more often; shooters and chargers make standing still a losing plan. Bosses come every 2 minutes at first, down to every 45 seconds as the threat rises, sometimes two at once (a red ring warns before each big attack). You get one more weapon slot at 5:00, 8:00 and 11:00 (up to 9). On Geki-muzu the threat reaches Lv10 around 12:00. The HUD shows a threat level and your best endless time is kept.
+- **Grow forever**: once every weapon and item is maxed (or the slots are full), level-ups offer stacking boosts instead of food cards: Damage +3% (compounding), Max HP +5, Cooldowns −1%, Area +3% and HP regen +0.25/s.
+- **Endless mode**: keep going after the 5-minute clear. Foes get stronger every minute and elite hordes come more and more often; shooters and chargers make standing still a losing plan. Bosses come every 2 minutes at first, down to every 45 seconds as the threat rises, sometimes two at once (a red ring warns before each big attack). You get one more weapon slot at 5:00, 6:30, 8:00 and 9:30 (up to 10). Shooters only fire while they are on screen, and new foes don't appear right in front of where you are running, so moving is the way to survive. On Geki-muzu the threat reaches Lv10 around 12:00. The HUD shows a threat level and your best endless time is kept.
 
 <details>
 <summary>Evolutions (14)</summary>
@@ -166,11 +166,11 @@ Browser tests use headless Chrome through playwright-core (`cd test && npm i`). 
 | `node test/ui6.mjs` | Every new stage, character, weapon and encyclopedia page shows in the menus in all 3 languages |
 | `node test/selinfo.mjs` | On phones, the select screen shows the chosen character's info under the grid, in all 3 languages, without clipping |
 | `node test/restore.mjs` | Entering a code replaces the save (no coin farming), ichigo once a day, best times shown consistently |
-| `node test/hudfit.mjs` | On phones (473, 390, 360 wide), 9 weapons + 5 items, the timer and two boss bars never overlap |
+| `node test/hudfit.mjs` | On phones (473, 390, 360 wide), 10 weapons + 5 items + every boost, the timer and two boss bars never overlap |
 | `node test/lvcards.mjs` | Phone level-up cards: number, name, stars and NEW never collide |
 | `node test/special.mjs` | Special move: gauge rate, button, on-screen foes cleared, capped boss damage, kept in resume codes |
 | `node test/runsave.mjs` | Mid-run save: pause → resume code, reload → continue, a code can't be used twice |
-| `node test/afk.mjs road geki` | Endless: even a strong build standing still doesn't last 15 minutes (one short scripted run) |
+| `node test/afk.mjs road geki` | Endless with a maxed build: standing still should fall around 8–10 min; `KITE=1` runs a simple kiting bot instead (aim: 15–20 min). One short scripted run each |
 | `node test/save-ui.mjs` | Save and guide screens |
 | `node test/textfit.mjs` | Text overflow on every screen in all 3 languages |
 | `node test/evo-sweep.mjs` | Runs every evolution in-game |

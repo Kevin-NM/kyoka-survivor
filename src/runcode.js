@@ -7,10 +7,10 @@ export const RC_STAGES = ['apple', 'berry', 'race', 'cage', 'zoo', 'snow', 'nigh
 export const RC_CHARS = ['kyon', 'odekake', 'ranger', 'dress', 'goth', 'dj', 'amaroli', 'waroli', 'machi', 'ekicho', 'redgt', 'kumicho', 'sapphire'];
 export const RC_WEAPONS = ['berry', 'lariat', 'beam', 'penlight', 'horse', 'seal', 'brush', 'drum', 'mic', 'apple', 'ham', 'fan', 'guitar', 'cyalume', 'ttable', 'para', 'hlock', 'koma', 'whis', 'syr', 'chaka'];
 export const RC_PASSIVES = ['pannier', 'shoes', 'ribbon', 'gobelt', 'suzuri', 'metro', 'nodoame', 'basket', 'omamori', 'gakufu', 'wasabi'];
-export const RC_BOOSTS = ['b_atk', 'b_hp', 'b_spd', 'b_mag', 'b_cd', 'b_coin'];
+export const RC_BOOSTS = ['b_atk', 'b_hp', 'b_spd', 'b_mag', 'b_cd', 'b_coin', 'b_area', 'b_regen']; // v1/v2 codes know the first 6
 const DIFFS = ['easy', 'normal', 'hard', 'geki'];
 const SAVE_LENS = new Set([12, 24, 44, 52, 60, 84, 92, 104]);
-const VER = 2; // v2 appends the special-move gauge (v1 codes still restore, with an empty gauge)
+const VER = 3; // v2 appended the special-move gauge, v3 the area / regen boosts (older codes still restore)
 // [key, bits] for the fixed part
 const FIXED = [['ver', 2], ['id', 16], ['stage', 5], ['char', 4], ['diff', 2], ['endless', 1], ['cleared', 1], ['boosted', 1], ['bossAlive', 1],
   ['t', 14], ['lvl', 7], ['xp', 5], ['hp', 6], ['pending', 3], ['kills', 18], ['picked', 14], ['banked', 14], ['bossKills', 6], ['nextBoss', 14], ['revives', 2],
@@ -65,7 +65,7 @@ export function decodeRun(str) {
     r.weapons = {}; r.evo = {}; r.passives = {}; r.boost = {};
     const hasW = RC_WEAPONS.filter(() => get(1)); for (const id of hasW) { const l = get(3); if (l > 5) return null; r.weapons[id] = l || 5; if (!l) r.evo[id] = true; }
     const hasP = RC_PASSIVES.filter(() => get(1)); for (const id of hasP) { const l = get(2); if (!l) return null; r.passives[id] = l; }
-    const hasB = RC_BOOSTS.filter(() => get(1)); for (const id of hasB) { const l = get(8); if (!l) return null; r.boost[id] = l; }
+    const hasB = RC_BOOSTS.slice(0, r.ver >= 3 ? RC_BOOSTS.length : 6).filter(() => get(1)); for (const id of hasB) { const l = get(8); if (!l) return null; r.boost[id] = l; }
     r.sp = 0; if (r.ver >= 2) { const g = get(7); if (g > 100) return null; r.sp = g / 100; }
     if (pos !== 0) return null;
     return r;

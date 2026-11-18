@@ -122,12 +122,12 @@ const ICON_SRC = { berry: 'berry', lariat: 'belt', beam: 'bolt', penlight: 'pen0
   evo_lariat: 'giga', evo_penlight: 'penSea', evo_horse: 'stampede', evo_ham: 'hparade', evo_fan: 'whirlFan', evo_guitar: 'gsolo', cyalume: 'cyal', evo_cyalume: 'minilive' };
 const ICON = {}; for (const k in ICON_SRC) ICON[k] = dataURL(ICON_SRC[k], 4);
 // small stat boosts offered once every weapon and passive is maxed (or the slots are full); they stack, some up to a cap
-const BOOST = { b_atk: { cap: Infinity, ic: 'suzuri' }, b_hp: { cap: Infinity, ic: 'pannier' }, b_spd: { cap: 20, ic: 'shoes' }, b_mag: { cap: 20, ic: 'ribbon' }, b_cd: { cap: 25, ic: 'metro' }, b_coin: { cap: Infinity, ic: null } };
+const BOOST = { b_atk: { cap: Infinity, ic: 'suzuri' }, b_hp: { cap: Infinity, ic: 'pannier' }, b_spd: { cap: 20, ic: 'shoes' }, b_mag: { cap: 20, ic: 'ribbon' }, b_cd: { cap: 25, ic: 'metro' }, b_area: { cap: 25, ic: 'gobelt' }, b_regen: { cap: 20, ic: 'oyaki' }, b_coin: { cap: Infinity, ic: null } };
 const BOOST_IDS = Object.keys(BOOST);
 for (const k of BOOST_IDS) ICON[k] = BOOST[k].ic ? ICON[BOOST[k].ic] : dataURL('coin', 4);
 const MAX_W = 6, MAX_P = 5; // slots per run, like the classic survivors games
 // endless / loop: one more weapon slot at 5:00, 8:00 and 11:00 (up to 9)
-const wCap = (endless, t) => endless && t >= WIN_T ? MAX_W + Math.min(3, 1 + Math.floor((t - WIN_T) / 180)) : MAX_W;
+const wCap = (endless, t) => endless && t >= WIN_T ? MAX_W + Math.min(4, 1 + Math.floor((t - WIN_T) / 90)) : MAX_W; // endless: 7 / 8 / 9 / 10 slots at 5:00 / 6:30 / 8:00 / 9:30
 const wCapG = () => wCap(G.endless, G.t);
 // app icon (README / favicon): kyon's face on a pink tile with a strawberry and a seal. 64x64 pixel art; scale up with nearest-neighbour.
 function makeIcon() {
@@ -234,6 +234,7 @@ const ETYPES = {
   cdragon: { hp: 2700, spd: 26, dmg: 14, r: 26, xp: 0, boss: true }
 };
 const PART_COL = { gyoza: [0xfff4e0, 0xd8a060, 0xffffff], lantb: [0xc8283a, 0xffd860, 0xffffff], capsb: [0xff7eb6, 0x6ec3ff, 0xffffff], cdragon: [0xc8283a, 0xffd860, 0x4ab88a], tulip: [0xff7eb6, 0x58b048, 0xffffff], heartb: [0xff5c8a, 0xffb0c8, 0xffffff], bouq: [0xfff4f8, 0xff9ac0, 0x7ec870], bell: [0xffd94a, 0xffffff, 0xff9ac0], cater: [0x8ad86a, 0xffe066, 0xffffff], crow: [0x2c2a48, 0x7676b8, 0xffffff], stink: [0x62ab52, 0xf0d860, 0xffffff], mole: [0x735f88, 0xff86a2, 0xffffff], dust: [0x9a94a8, 0xe8e4f0, 0xffffff], paper: [0xffffff, 0xd8d4e0, 0xb0aac0], slug: [0xe8d870, 0xfff4b0, 0xffffff], carrot: [0xf08030, 0x58b048, 0xffffff], monkey: [0x8a5a34, 0xf0c898, 0xffffff], peng: [0x2a2c44, 0xffffff, 0xffc040], sball: [0xffffff, 0xc8d8f0, 0x9ab0e0], sman: [0xffffff, 0x4a78d0, 0xe04848], onpu: [0x8a5ad0, 0xff86c0, 0xffffff], spk: [0x34304a, 0xff6ab0, 0x6ae0ff], bee: [0xf0b820, 0x2a2030, 0xffffff], kuma: [0x2a2632, 0xf4f0e8, 0xb89070], bat: [0x4a2a70, 0xff5a8a, 0xffffff], usagi: [0xffffff, 0xffb8c8, 0xe02040] };
+const partCol = type => PART_COL[type] || [0xffd94a, 0xff7eb6, 0xffffff]; // bosses (e.g. endless twins) have no palette of their own
 const RANGER_COL = [[1, 0.35, 0.4], [0.4, 0.65, 1], [1, 0.9, 0.35], [1, 0.55, 0.8], [0.45, 1, 0.55]];
 // selection (character / stage), remembered on this device
 let sel = (() => { try { return Object.assign({ char: 'kyon', stage: 'apple', diff: 'normal' }, JSON.parse(localStorage.getItem('kyoka-sel') || '{}')); } catch (e) { return { char: 'kyon', stage: 'apple', diff: 'normal' }; } })();
@@ -305,14 +306,20 @@ function spawnEnemy(type, x, y, forceElite) {
   const em = endlessM();
   if (em > 0) { // regular foes outgrow a maxed build; bosses get tougher but hit only a little harder
     e.hp *= b.boss ? 1 + 0.3 * em + 0.03 * em * em : 1 + 0.3 * em + 0.04 * em * em; e.maxHp = e.hp;
-    e.dmg *= b.boss ? 1 + 0.06 * em : 1 + 0.17 * em + 0.014 * em * em; e.spd *= Math.min(1.8, 1 + 0.045 * em);
-    if (!b.boss && !forceElite && Math.random() < Math.min(0.35, 0.045 * em)) { e.beh = Math.random() < 0.5 ? 'shoot' : 'charge'; e.bt = rnd(1.2, 3); } // foes you have to move for
+    e.dmg *= b.boss ? 1 + 0.06 * em : 1 + 0.17 * em + 0.014 * em * em; e.spd *= Math.min(1.5, 1 + 0.035 * em); if (!b.boss) e.spd = Math.min(e.spd, G.p.speed * 0.8); // never outrun the player
+    if (!b.boss && !forceElite && Math.random() < Math.min(0.2, 0.04 * em)) { e.beh = Math.random() < 0.5 ? 'shoot' : 'charge'; e.bt = rnd(1.2, 3); e.shotDmg = b.dmg * 0.6 * (1 + 0.055 * em); } // foes you have to move for
   }
   if (!b.boss && (forceElite || (G.t > 60 && Math.random() < Math.min(0.5, df.elite + 0.022 * em)))) { e.elite = true; e.hp = e.maxHp = e.hp * 4; e.r *= 1.4; e.dmg *= 1.5; e.xp *= 6; e.spd *= 0.9; }
   if (ETYPES6[type]) { e.p6 = 1; e.sturdy = b.sturdy; if (!b.boss) { e.hp *= P6_HP; e.maxHp = e.hp; e.dmg *= P6_DMG; } } // phase-6 foes come with gimmicks, so their numbers are a little lower
   G.enemies.push(e); return e;
 }
-function ringPos(extra) { const a = Math.random() * TAU, rx = RD.viewW / 2 + 30 + (extra || 0), ry = RD.viewH / 2 + 30 + (extra || 0); return [G.p.x + Math.cos(a) * rx, G.p.y + Math.sin(a) * ry]; }
+// spawn just off-screen, but keep a gap in front of a moving player (no walls popping up on the path you are running along)
+function ringPos(extra) {
+  const p = G.p, rx = RD.viewW / 2 + 50 + (extra || 0), ry = RD.viewH / 2 + 50 + (extra || 0), mv = p.moving || p.dashT > 0, fa = Math.atan2(p.dy, p.dx);
+  let a = Math.random() * TAU;
+  if (mv) { let off = ((a - fa) % TAU + TAU) % TAU; if (off > Math.PI) off -= TAU; if (Math.abs(off) < 1.0) a = fa + (off < 0 ? -1 : 1) * (1.0 + Math.random() * (Math.PI - 1.0)); }
+  return [p.x + Math.cos(a) * rx, p.y + Math.sin(a) * ry];
+}
 function pickType() {
   const w = G.D.mix(G.t);
   let s = 0; for (const [, v] of w) s += v; let r = Math.random() * s;
@@ -386,7 +393,7 @@ function killEnemy(e) {
   }
   Snd.fx.kill();
   if (e.type === 'flashb' && G.t > G.flashCd) { G.flashCd = G.t + 5; G.flash = Math.max(G.flash, 0.3); G.flashRed = 0; }
-  burst(e.x, e.y, PART_COL[e.type], 9, 70, 1, 8);
+  burst(e.x, e.y, partCol(e.type), 9, 70, 1, 8);
   fxAdd('poof', e.x, e.y, { life: 0.35, max: 0.35, size: 28 });
   dropGem(e.x, e.y, e.xp);
   if (e.elite) { for (let i = 0; i < 3; i++) G.items.push({ x: e.x + rnd(-12, 12), y: e.y + rnd(-8, 8), k: 'coin' }); burst(e.x, e.y, [0xffd94a, 0xffffff], 16, 100, 1.4, 10); }
@@ -404,8 +411,9 @@ function dropGem(x, y, v) {
   if (G.gems.length > 260) { const g = G.gems[(Math.random() * G.gems.length) | 0]; g.v += v; return; }
   G.gems.push({ x, y, v, fly: false, bob: Math.random() * TAU, pop: 0.3 });
 }
-function hurtPlayer(d) {
+function hurtPlayer(d, src) {
   const p = G.p; if (p.inv > 0 || p.dashT > 0 || G.shield > 0) return;
+  const L = window.__kyokaDmg; if (L) { const k = src || 'other'; L[k] = (L[k] || 0) + d; L.n = (L.n || 0) + 1; }
   if (G.dodge && Math.random() < G.dodge) { p.inv = 0.4; burst(p.x, p.y, [0x6a8aff, 0xffffff], 8, 60, 1, 14); return; }
   d *= G.df.dmg * (1 + (G.df.late || 0) * 0.3 * Math.max(0, Math.min(G.t, WIN_T) - 150) / 150) * (1 - 0.1 * (G.passives.omamori || 0));
   p.hp -= d; p.inv = 0.85; p.hurtT = 0.3; G.shake = 5; Snd.fx.hurt(); burst(p.x, p.y, [0xe8394f, 0xffa3c0, 0xffffff], 10, 70, 1, 16);
@@ -680,13 +688,13 @@ function updateP2(dt) {
   }
   for (let i = G.ebul.length - 1; i >= 0; i--) { // boss bullets
     const b = G.ebul[i]; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if (Math.hypot(b.x - p.x, b.y - p.y) < 6 + p.hitR) { hurtPlayer(b.dmg * (b.foe ? 1 : bossSoft())); b.life = 0; burst(b.x, b.y, [0xffffff, 0x9fe0ff], 6, 50, 1, 8); }
+    if (Math.hypot(b.x - p.x, b.y - p.y) < 6 + p.hitR) { hurtPlayer(b.dmg * (b.foe ? 1 : bossSoft()), b.foe ? 'shot' : 'bossShot'); b.life = 0; burst(b.x, b.y, [0xffffff, 0x9fe0ff], 6, 50, 1, 8); }
     if (b.life <= 0) G.ebul.splice(i, 1);
     if (state !== 'play') return;
   }
   for (let i = G.hazards.length - 1; i >= 0; i--) { // speaker sound rings
     const h = G.hazards[i]; h.r += h.spd * dt; if (h.r > h.max) { G.hazards.splice(i, 1); continue; }
-    if (!h.hit && Math.abs(Math.hypot(p.x - h.x, p.y - h.y) - h.r) < 6 + p.hitR) { h.hit = true; hurtPlayer(h.dmg * bossSoft()); if (state !== 'play') return; }
+    if (!h.hit && Math.abs(Math.hypot(p.x - h.x, p.y - h.y) - h.r) < 6 + p.hitR) { h.hit = true; hurtPlayer(h.dmg * bossSoft(), 'hazard'); if (state !== 'play') return; }
   }
 }
 // map pickups: 🧲 magnet, 💣 bomb, 🍰 strawberry cake (full HP + a short shield)
@@ -855,7 +863,7 @@ function checkAch() {
 // ---------- update ----------
 function update(dt) {
   updateSp(dt);
-  if (G.regen && G.p.hp > 0) G.p.hp = Math.min(G.p.maxHp, G.p.hp + G.regen * dt); // きょんカフェ
+  { const rg = (G.regen || 0) + 0.25 * (G.boost.b_regen || 0); if (rg && G.p.hp > 0) G.p.hp = Math.min(G.p.maxHp, G.p.hp + rg * dt); } // きょんカフェ + HP regen boosts
   G.safe += dt; if (G.t - (G.lastSave || 0) >= 10) { G.lastSave = G.t; saveRun(); }
   if (G.endless) { const wc = wCapG(); if (wc > (G.wcap || MAX_W)) { G.wcap = wc; banner(RUN_T[lang].slotUp.replace('{n}', wc), 'stage'); Snd.fx.chest(); refreshWeps(); } }
   const p = G.p;
@@ -866,8 +874,8 @@ function update(dt) {
   // character / passive modifiers for this frame
   if (G.char === 'ranger') { const rc = Math.floor(G.t / 30) % 5; if (rc !== G.rc) { G.rc = rc; banner(T().rangerCol[rc], 'stage'); G.henshin = 0.5; burst(p.x, p.y, [RANGER_HEX[rc], 0xffffff], 24, 90, 1.4, 16); Snd.fx.beam(); } G.spr = 'kr' + G.rc; }
   const rc = G.char === 'ranger' ? G.rc : -1;
-  G.dm = G.dmgMul * (1 + 0.06 * (G.passives.suzuri || 0)) * (1 + 0.03 * (G.boost.b_atk || 0)) * (rc === 0 ? 1.2 : 1);
-  G.cdm = G.cdMul * (rc === 1 ? 0.85 : 1) * (1 - 0.06 * (G.passives.metro || 0)) * (1 - 0.01 * (G.boost.b_cd || 0)); G.area = Math.min(1.3, 1 + 0.07 * (G.passives.gobelt || 0));
+  G.dm = G.dmgMul * (1 + 0.06 * (G.passives.suzuri || 0)) * 1.03 ** (G.boost.b_atk || 0) * (rc === 0 ? 1.2 : 1);
+  G.cdm = G.cdMul * (rc === 1 ? 0.85 : 1) * (1 - 0.06 * (G.passives.metro || 0)) * (1 - 0.01 * (G.boost.b_cd || 0)); G.area = Math.min(1.3, 1 + 0.07 * (G.passives.gobelt || 0)) * (1 + 0.03 * (G.boost.b_area || 0));
   const magnet = p.magnet * (rc === 2 ? 1.4 : 1);
   if (rc === 3 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.5 * dt);
   if (G.passives.nodoame && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 0.5 * G.passives.nodoame * dt);
@@ -974,7 +982,7 @@ function update(dt) {
     if (Math.abs(dx) > 0.2) e.face = dx > 0 ? 1 : -1;
     e.anim += dt * (e.type === 'crow' ? 10 : e.type === 'boss' ? 7 : e.type === 'mokuba' ? (e.mode === 'dash' ? 14 : 6) : 6); e.flash -= dt;
     if (!e.boss) { let n = 0; query(e.x, e.y, e.r * 2, o => { if (o === e) return; const ox = e.x - o.x, oy = e.y - o.y, od = ox * ox + oy * oy, m = (e.r + o.r) * 0.8; if (od < m * m && od > 0.01) { const f = (m - Math.sqrt(od)) * 0.5 / Math.sqrt(od); e.x += ox * f; e.y += oy * f; } if (++n > 6) return false; }); }
-    if (d < e.r + p.hitR && e.conf <= 0) { if (e.p6) touch6(e); hurtPlayer(e.dmg * (e.boss ? bossSoft() : 1)); }
+    if (d < e.r + p.hitR && e.conf <= 0) { if (e.p6) touch6(e); hurtPlayer(e.dmg * (e.boss ? bossSoft() : 1), e.boss ? 'boss' : e.cs === 2 ? 'charge' : e.elite ? 'elite' : 'foe'); }
     if (state !== 'play') return;
     if (!e.boss && (Math.abs(p.x - e.x) > RD.viewW * 0.85 || Math.abs(p.y - e.y) > RD.viewH * 0.85)) { const [x, y] = ringPos(); e.x = x; e.y = y; e.mx = undefined; }
   }
@@ -1042,8 +1050,8 @@ function tickFx(dt) {
 }
 function autoMove() {
   if (G.auto === 'smart') return smartMove();
-  const p = G.p; let fx = 0, fy = 0;
-  query(p.x, p.y, 70, e => { const dx = p.x - e.x, dy = p.y - e.y, d2 = dx * dx + dy * dy + 1; fx += dx / d2 * (e.boss ? 30 : 1); fy += dy / d2 * (e.boss ? 30 : 1); });
+  const p = G.p, kite = G.auto === 'kite'; let fx = 0, fy = 0; // 'kite' (test bot): keep running away from the nearest foes
+  query(p.x, p.y, kite ? 150 : 70, e => { const dx = p.x - e.x, dy = p.y - e.y, d2 = dx * dx + dy * dy + 1; fx += dx / d2 * (e.boss ? 30 : 1); fy += dy / d2 * (e.boss ? 30 : 1); });
   const g = G.gems.length ? G.gems.reduce((b, g) => { const d = (g.x - p.x) ** 2 + (g.y - p.y) ** 2; return d < b[0] ? [d, g] : b; }, [1e9, null])[1] : null;
   if (g) { const dx = g.x - p.x, dy = g.y - p.y, d = Math.hypot(dx, dy) + 1; fx += dx / d * 0.03; fy += dy / d * 0.03; }
   fx += Math.cos(G.t * 0.3) * 0.004; fy += Math.sin(G.t * 0.23) * 0.004;
@@ -1676,7 +1684,10 @@ function beh7(e, dt, spd, dx, dy, d) {
   if (e.beh === 'shoot') {
     if (d < 150) { MV.dx = -dx * 0.3; MV.dy = -dy * 0.3; } // keeps a little distance
     if (e.bt < 0.35) e.flash = 0.06;
-    if (e.bt <= 0 && d < RD.viewW * 0.6) { e.bt = 3.2; G.ebul.push({ k: 'sbul', x: e.x, y: e.y, vx: dx * 95, vy: dy * 95, life: 3.2, dmg: e.dmg * 0.8, foe: 1 }); }
+    // only from inside the screen (never an unseen shot at a player running toward the edge), and with a gentle damage curve
+    const p = G.p, onScr = Math.abs(e.x - p.x) < RD.viewW * 0.44 && Math.abs(e.y - p.y) < RD.viewH * 0.4;
+    if (e.bt <= 0 && onScr && e.spawnT > 1.2) { e.bt = 3.4; G.ebul.push({ k: 'sbul', x: e.x, y: e.y, vx: dx * 80, vy: dy * 80, life: 3.4, dmg: e.shotDmg || 4, foe: 1 }); }
+    else if (e.bt <= 0) e.bt = 0.4;
     return spd * 0.8;
   }
   if (e.cs === 1) { e.flash = 0.06; if (e.bt <= 0) { e.cs = 2; e.bt = 0.45; } MV.dx = e.cdx; MV.dy = e.cdy; return 0; }
@@ -1952,7 +1963,7 @@ function bossSpawn6(e) {
 function addTwinBoss() { const [x2, y2] = ringPos(10), b2 = spawnEnemy(G.D.boss, x2, y2); Object.assign(b2, { mode: 'chase', mt: 4.5, summon: 9, atk: 4.5, twin: G.boss }); G.boss.twin = b2; }
 function twinDown6(e) { // one シーサー down: the other carries the boss bar
   const o = e.twin; o.twin = null; if (G.boss === e) G.boss = o;
-  burst(e.x, e.y, PART_COL[e.type], 50, 140, 1.5, 18); fxAdd('poof', e.x, e.y, { life: 0.7, max: 0.7, size: 100 }); Snd.fx.boom(); G.shake = 8;
+  burst(e.x, e.y, partCol(e.type), 50, 140, 1.5, 18); fxAdd('poof', e.x, e.y, { life: 0.7, max: 0.7, size: 100 }); Snd.fx.boom(); G.shake = 8;
   for (let i = 0; i < 10; i++) dropGem(e.x + rnd(-40, 40), e.y + rnd(-30, 30), 10);
   G.items.push({ x: e.x, y: e.y, k: 'oyaki' });
 }

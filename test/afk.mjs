@@ -7,6 +7,7 @@ const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args
 const ctx = await b.newContext({ viewport: { width: 960, height: 540 } });
 await ctx.addInitScript(() => { localStorage.setItem('kyoka-lang', 'ja'); localStorage.removeItem('kyoka-run'); });
 const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+if (process.env.KITE) await ctx.addInitScript(() => { window.__kite = 1; });
 await p.goto('file://' + ROOT + 'dist/index.html'); await p.waitForTimeout(600);
 await p.evaluate(([c, stage, diff, bk, nb]) => {
   const k = window.__kyoka; k.setProfile(k.decode(c).profile); window.__kyokaTest = true;
@@ -15,17 +16,18 @@ await p.evaluate(([c, stage, diff, bk, nb]) => {
   for (const id of ['pannier', 'shoes', 'ribbon', 'suzuri', 'metro']) while (k.lvOf(id) < 3) k.give(id);
   for (const [id, n] of [['b_atk', 30], ['b_hp', 20], ['b_cd', 15], ['b_mag', 5]]) for (let i = 0; i < Math.min(id === 'b_cd' ? 25 : 999, n * bk); i++) k.give(id); // like a Lv100+ build
   if (stage !== 'road') { k.skipTo(300); k.step(1 / 30); k.continueEndless(); }
-  window.__noBoss = nb;
+  window.__noBoss = nb; window.__kyokaDmg = {}; if (window.__kite) k.setAuto('kite');
 }, [process.env.ALLCODE, stage, diff, boostK, noBoss]);
 let res;
-for (let i = 0; i < 64; i++) {
+for (let i = 0; i < 160; i++) {
   res = await p.evaluate(() => { const k = window.__kyoka;
-    for (let j = 0; j < (+window.__afkN || 450); j++) { if (k.state === 'chest') k.closeChest(); if (k.state === 'levelup') { window.__kyokaTest = true; k.pick(0); } if (k.state !== 'play') break; if (window.__noBoss) k.G.nextBoss = 1e9; k.step(1 / 30); }
-    const G = k.G; return { st: k.state, t: Math.floor(G.t), hp: Math.round(G.p.hp), max: G.p.maxHp, thr: G.threat, lvl: G.lvl, en: G.enemies.length, bosses: G.bossKills, boss: !!G.boss, two: !!(G.boss && G.boss.twin) }; });
+    for (let j = 0; j < (+window.__afkN || 450); j++) { if (k.state === 'chest') k.closeChest(); for (let q = 0; q < 12 && k.state === 'levelup'; q++) { window.__kyokaTest = true; k.pick(0); } if (k.state !== 'play') break; if (window.__noBoss) k.G.nextBoss = 1e9; k.step(1 / 30); }
+    const G = k.G; return { st: k.state, t: Math.floor(G.t), hp: Math.round(G.p.hp), max: G.p.maxHp, thr: G.threat, lvl: G.lvl, en: G.enemies.length, bosses: G.bossKills, boss: !!G.boss, two: !!(G.boss && G.boss.twin), dmg: JSON.stringify(Object.fromEntries(Object.entries(window.__kyokaDmg).map(([a, b]) => [a, Math.round(b)]))), spd: Math.round(G.p.speed), espd: Math.round(G.enemies.filter(e => !e.boss).reduce((a, e) => a + e.spd, 0) / Math.max(1, G.enemies.filter(e => !e.boss).length)) }; });
   if (i % 4 === 3 || process.env.V && res.t > 280 || res.st !== 'play') console.log(JSON.stringify(res));
-  if (res.st !== 'play' || res.t >= 900 + (stage === 'road' ? 0 : 300)) break;
+  if ((res.st !== 'play' && res.st !== 'levelup' && res.st !== 'chest') || res.t >= (+process.env.TMAX || 900) + (stage === 'road' ? 0 : 300)) break;
 }
 await b.close();
 if (errs.length) console.log('errors:', errs.slice(0, 3));
 const limit = stage === 'road' ? 900 : 1200;
-console.log(res.st === 'over' && res.t <= limit ? `AFK died at ${Math.floor(res.t / 60)}:${String(res.t % 60).padStart(2, '0')} (threat Lv${res.thr}) ✔` : `AFK still alive at ${res.t}s ✗`);
+console.log((process.env.KITE ? '[kite] ' : '[idle] ') + `${res.st === 'over' ? 'died' : 'alive'} at ${Math.floor(res.t / 60)}:${String(res.t % 60).padStart(2, '0')} (threat Lv${res.thr}, lvl ${res.lvl})`);
+if (0) console.log(res.st === 'over' && res.t <= limit ? `AFK died at ${Math.floor(res.t / 60)}:${String(res.t % 60).padStart(2, '0')} (threat Lv${res.thr}) ✔` : `AFK still alive at ${res.t}s ✗`);

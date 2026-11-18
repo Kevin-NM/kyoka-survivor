@@ -7,7 +7,7 @@ const ROOT = decodeURI(new URL('..', import.meta.url).pathname);
 const SHOTS = process.argv[2];
 const VPS = [[473, 1024], [390, 844], [360, 740], [960, 540]];
 const LANGS = ['zh', 'ja', 'en'];
-const W9 = ['berry', 'lariat', 'beam', 'drum', 'mic', 'apple', 'ham', 'fan', 'guitar'], PAS = ['shoes', 'ribbon', 'gobelt', 'suzuri', 'metro'];
+const W9 = ['berry', 'lariat', 'beam', 'drum', 'mic', 'apple', 'ham', 'fan', 'guitar', 'cyalume'], PAS = ['shoes', 'ribbon', 'gobelt', 'suzuri', 'metro'];
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const errs = []; let checks = 0, bad = 0;
 const measure = () => {
@@ -38,18 +38,19 @@ for (const [w, h] of VPS) for (const lang of LANGS) {
   await ctx.addInitScript(l => { localStorage.setItem('kyoka-lang', l); localStorage.removeItem('kyoka-run'); }, lang);
   const p = await ctx.newPage();
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
-  // nW weapons (endless t=700 → 9 slots), nP passives, boosts, bosses 0/1/2
-  for (const [nW, nP, boost, bosses] of [[1, 0, 0, 0], [3, 2, 0, 1], [6, 5, 0, 1], [6, 5, 1, 2], [9, 0, 0, 2], [9, 5, 0, 1], [9, 5, 1, 2]]) {
+  // nW weapons (endless t=900 → 10 slots), nP passives, boosts, bosses 0/1/2
+  for (const [nW, nP, boost, bosses] of [[1, 0, 0, 0], [3, 2, 0, 1], [6, 5, 0, 1], [6, 5, 1, 2], [9, 0, 0, 2], [9, 5, 0, 1], [9, 5, 1, 2], [10, 5, 2, 2], [10, 0, 2, 1]]) {
     await p.goto('file://' + ROOT + 'dist/index.html'); await p.waitForFunction(() => window.__kyoka && document.readyState === 'complete');
     await p.waitForTimeout(300);
     await p.evaluate(([nW, nP, boost, bosses, W9, PAS]) => {
       const k = window.__kyoka; window.__kyokaTest = true; window.__kyokaNoLv = true;
       document.getElementById('resumeask')?.classList.add('hide');
-      k.select('kyon', 'road'); k.start(); k.setAuto(true); k.G.endless = true; k.G.t = 700; k.step(1 / 30);
+      k.select('kyon', 'road'); k.start(); k.setAuto(true); k.G.endless = true; k.G.t = 900; k.step(1 / 30);
       for (const x of W9.slice(0, nW)) k.give(x); for (const x of PAS.slice(0, nP)) k.give(x);
       if (boost) { k.give('b_atk'); k.give('b_hp'); }
+      if (boost === 2) for (const x of ['b_spd', 'b_mag', 'b_cd', 'b_area', 'b_regen']) k.give(x); // every boost icon
       if (bosses) k.spawnBoss(bosses === 2); else k.G.nextBoss = 1e9;
-      if (bosses === 2 || nW === 9) k.fillSp(); // big ready button in the fullest states, the small gauge ring in the others
+      if (bosses === 2 || nW >= 9) k.fillSp(); // big ready button in the fullest states, the small gauge ring in the others
       for (let i = 0; i < 6; i++) k.step(1 / 30);
     }, [nW, nP, boost, bosses, W9, PAS]);
     await p.waitForTimeout(250);
@@ -58,7 +59,7 @@ for (const [w, h] of VPS) for (const lang of LANGS) {
     if (bosses && !m.boss) m.iss.push('boss bar not shown');
     if (bosses === 2) { const two = await p.evaluate(() => !document.getElementById('bossbar2')?.classList.contains('hide')); if (!two) m.iss.push('second boss bar not shown'); }
     if (m.iss.length) { bad++; console.log('✗', tag, m.iss.slice(0, 6).join(' | ')); await p.screenshot({ path: `/tmp/hudfit-${w}-${lang}-${nW}-${nP}-${bosses}.png` }); }
-    if (SHOTS && lang === 'zh' && nW === 9 && nP === 5 && bosses === 2) await p.screenshot({ path: `${SHOTS}/hud-2boss-${w}-zh.png` });
+    if (SHOTS && lang === 'zh' && nW === 10 && nP === 5 && bosses === 2) await p.screenshot({ path: `${SHOTS}/hud-2boss-${w}-zh.png` });
   }
   await ctx.close();
 }
