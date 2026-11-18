@@ -34,7 +34,7 @@ for (const [w, h] of [[390, 844], [960, 540]]) {
   ok(!post.cine && post.spT === 0 && post.hide && post.seen === '1', tag + ' cut-scene ends and hides ' + JSON.stringify(post));
   ok(post.left <= 2, tag + ' finisher cleared the screen, left ' + post.left);
   // second use: the skip hint shows and a tap jumps to the finisher, which still lands
-  await K(() => { const k = window.__kyoka; k.spawn(30); for (let i = 0; i < 10; i++) k.step(1 / 30); k.fillSp(); k.step(1 / 30); k.useSp(); k.step(1 / 30); });
+  await K(() => { const k = window.__kyoka; k.spawn(30); for (let i = 0; i < 10; i++) k.step(1 / 30); k.fillSp(); k.step(1 / 30); k.useSp(); for (let i = 0; i < 12; i++) k.step(1 / 30); });
   if (SHOTS) { await p.waitForTimeout(120); await p.screenshot({ path: `${SHOTS}/cine-${w}-7-skip-hint.png` }); }
   if (phone) await p.locator('#spfx').dispatchEvent('pointerdown'); else await p.keyboard.press('Enter');
   const sk = await K(() => window.__kyoka.spState.cine);
