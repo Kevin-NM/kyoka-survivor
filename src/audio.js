@@ -15,7 +15,10 @@ const Snd = (() => {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ac = new AC();
-    master = ac.createGain(); master.gain.value = muted ? 0 : 0.55; master.connect(ac.destination);
+    master = ac.createGain(); master.gain.value = muted ? 0 : 0.55;
+    // gentle limiter on the master: the big layered SFX (special move) sit on top of the music without clipping
+    const lim = ac.createDynamicsCompressor(); lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.2;
+    master.connect(lim); lim.connect(ac.destination);
     music = ac.createGain(); music.gain.value = 0.32; music.connect(master);
     sfx = ac.createGain(); sfx.gain.value = 0.55; sfx.connect(master);
     noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
@@ -236,10 +239,20 @@ const Snd = (() => {
     mic() { if (limited('mic', 150)) return; tone({ f: 523, to: 784, dur: 0.18, vol: 0.08, type: 'triangle' }); tone({ f: 659, to: 988, dur: 0.18, vol: 0.05, type: 'p12' }); },
     apple() { if (limited('apple', 90)) return; tone({ f: 300, to: 600, dur: 0.08, vol: 0.06, type: 'triangle' }); },
     plop() { if (limited('plop', 70)) return; tone({ f: 220, to: 90, dur: 0.1, vol: 0.12, type: 'sine' }); },
-    special() { if (!ac) return; const t = ac.currentTime; // short original sting: rising five-note fanfare, then the blast
-      [67, 71, 74, 79, 83].forEach((m, i) => tone({ f: mtof(m), t: t + i * 0.09, dur: 0.16, vol: 0.11, type: i % 2 ? 'p12' : 'p25' }));
-      [79, 86, 91].forEach(m => tone({ f: mtof(m), t: t + 0.5, dur: 0.4, vol: 0.07, type: 'triangle' }));
-      tone({ f: 140, to: 28, t: t + 0.9, dur: 0.7, vol: 0.34, type: 'triangle' }); hiss({ t: t + 0.9, dur: 0.6, vol: 0.24, lp: 1100 }); },
+    // 必殺技 cut-scene (キョンレンジャー大集合): original layered stings, louder than normal SFX (the limiter keeps them clean)
+    spSting() { if (!ac) return; const t = ac.currentTime; // transformation: rising sweep + shimmering chord
+      tone({ f: 180, to: 1400, dur: 0.5, vol: 0.16, type: 'sawtooth' }); hiss({ dur: 0.5, vol: 0.18, hp: 1500, sweep: 9000 });
+      [72, 76, 79, 84].forEach((m, i) => { tone({ f: mtof(m), t: t + 0.18 + i * 0.04, dur: 0.45, vol: 0.12, type: 'p25' }); tone({ f: mtof(m + 12), t: t + 0.22 + i * 0.04, dur: 0.35, vol: 0.05, type: 'sine' }); }); },
+    spEntry(i) { if (!ac) return; const t = ac.currentTime, root = [67, 69, 71, 72, 74][i] || 67; // whoosh from above, a landing hit and that ranger's note
+      hiss({ dur: 0.18, vol: 0.2, hp: 800, sweep: 5000 }); tone({ f: 900, to: 220, dur: 0.16, vol: 0.08, type: 'triangle' });
+      tone({ f: 150, to: 40, t: t + 0.16, dur: 0.28, vol: 0.42, type: 'sine' }); hiss({ t: t + 0.16, dur: 0.12, vol: 0.2, lp: 2200 });
+      tone({ f: mtof(root), t: t + 0.17, dur: 0.24, vol: 0.13, type: 'p25' }); tone({ f: mtof(root + 7), t: t + 0.17, dur: 0.24, vol: 0.07, type: 'p12' }); },
+    spBoom() { if (!ac) return; const t = ac.currentTime; // the group pose: big five-colour explosion + a chord stab
+      tone({ f: 110, to: 26, dur: 1.1, vol: 0.55, type: 'sine' }); tone({ f: 70, to: 30, dur: 0.9, vol: 0.3, type: 'triangle' }); hiss({ dur: 1.0, vol: 0.38, lp: 1300 }); hiss({ t: t + 0.05, dur: 0.5, vol: 0.14, hp: 3000 });
+      [60, 64, 67, 72, 76].forEach(m => tone({ f: mtof(m), t: t + 0.02, dur: 0.7, vol: 0.07, type: 'p25' })); },
+    spBeam() { if (!ac) return; const t = ac.currentTime; // finisher: charge-up, then the sweeping beam
+      tone({ f: 300, to: 1800, dur: 0.22, vol: 0.12, type: 'sawtooth' }); [84, 88, 91, 96].forEach((m, i) => tone({ f: mtof(m), t: t + i * 0.04, dur: 0.18, vol: 0.07, type: 'p12' }));
+      tone({ f: 160, to: 28, t: t + 0.2, dur: 0.9, vol: 0.5, type: 'triangle' }); hiss({ t: t + 0.2, dur: 0.8, vol: 0.34, lp: 1600, sweep: 400 }); tone({ f: 1200, to: 300, t: t + 0.2, dur: 0.6, vol: 0.08, type: 'square' }); },
     cheat() { if (!ac) return; const t = ac.currentTime; [72, 79, 84, 88, 84, 88, 91, 96].forEach((m, i) => tone({ f: mtof(m), t: t + i * 0.08, dur: 0.2, vol: 0.1, type: 'p25' })); },
     coin() { if (limited('coin', 50)) return; tone({ f: 1568, dur: 0.05, vol: 0.06, type: 'p25' }); tone({ f: 2093, t: ac && ac.currentTime + 0.05, dur: 0.08, vol: 0.06, type: 'p25' }); },
     bite() { if (limited('bite', 120)) return; tone({ f: 900, to: 500, dur: 0.06, vol: 0.08, type: 'square' }); tone({ f: 1200, to: 700, dur: 0.05, vol: 0.05, type: 'p25', t: ac && ac.currentTime + 0.07 }); },
@@ -257,6 +270,7 @@ const Snd = (() => {
   };
   return {
     init, playSong, stopSong, fx,
+    duck(on) { if (music) music.gain.setTargetAtTime(on ? 0.15 : 0.32, ac.currentTime, 0.08); }, // music steps back under the special-move SFX
     get muted() { return muted; },
     toggleMute() { muted = !muted; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.55, ac.currentTime, 0.02); return muted; }
   };

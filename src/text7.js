@@ -36,7 +36,7 @@ export const RUN_T = {
 
 // 必殺技 (special move): name keeps キョンレンジャー in every language
 export const SP_T = {
-  ja: { btn: '必殺技', ready: '⚡ 必殺技 OK！ ボタンか Q キーで はつどう', name: '⚡ キョンレンジャー大集合！' },
-  zh: { btn: '必殺技', ready: '⚡ 必殺技準備好了！按按鈕或 Q 鍵發動', name: '⚡ キョンレンジャー大集合！' },
-  en: { btn: 'Special', ready: '⚡ Special ready! Tap the button or press Q', name: '⚡ キョンレンジャー, assemble!' }
+  ja: { btn: '必殺技', ready: '⚡ 必殺技 OK！ ボタンか Q キーで はつどう', name: '⚡ キョンレンジャー大集合！', skip: 'スキップ' },
+  zh: { btn: '必殺技', ready: '⚡ 必殺技準備好了！按按鈕或 Q 鍵發動', name: '⚡ キョンレンジャー大集合！', skip: '跳過' },
+  en: { btn: 'Special', ready: '⚡ Special ready! Tap the button or press Q', name: '⚡ キョンレンジャー, assemble!', skip: 'Skip' }
 };

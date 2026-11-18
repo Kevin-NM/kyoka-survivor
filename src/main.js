@@ -13,6 +13,7 @@ import './text4.js';
 import './text5.js';
 import './text6.js';
 import { RUN_T, SHOP_T, SP_T } from './text7.js';
+import { CINE, CINE_ORDER, makeCine, tickCine, drawCine } from './cine.js';
 import { encodeRun, decodeRun, isRunLen } from './runcode.js';
 import { LOOKS6, SUNRISE, PROPS6, ETYPES6, SDEF6, ERAS, PART_COL6, LIFT6, STAGE_FOODS, FOOD_HP6, ITEM_GLOW6, THUMB6 } from './stages6.js';
 
@@ -591,17 +592,45 @@ function randomVisibleEnemy() {
 // ---------- 必殺技: キョンレンジャー大集合 ----------
 // Kills fill the gauge (G.sp 0..1) through G.spPend, but never faster than SP_RATE, so it is ready about once every 60–90 s
 // (キョンレンジャー: fewer kills needed and a faster cap, about every 45–60 s). Bosses take a share of max HP, capped in endless.
-const SP_RATE = 1 / 70, SP_RATE_R = 1 / 48, SP_DUR = 2.4, SP_HIT = 0.9;
+const SP_RATE = 1 / 70, SP_RATE_R = 1 / 48, SP_DUR = CINE.END; // the whole cut-scene; the game is frozen meanwhile
 const spNeed = () => G.char === 'ranger' ? 90 : 130;
 function updateSp(dt) {
   if (G.sp < 1 && G.spPend > 0) { const mv = Math.min(G.spPend, dt * (G.char === 'ranger' ? SP_RATE_R : SP_RATE)); G.sp = Math.min(1, G.sp + mv); G.spPend -= mv; if (G.sp >= 1) { G.sp = 1; G.spPend = 0; toast(SP_T[lang].ready); Snd.fx.seal(); } }
-  if (G.spT > 0) { const was = G.spT; G.spT -= dt; if (was > SP_DUR - SP_HIT && G.spT <= SP_DUR - SP_HIT) spBlast(); }
 }
 function useSp() {
   if (!G || state !== 'play' || G.sp < 1 || G.spT > 0) return false;
-  G.sp = 0; G.spPend = 0; G.spT = SP_DUR; G.spN = (G.spN || 0) + 1; const p = G.p;
-  p.inv = Math.max(p.inv, SP_DUR + 0.3); banner(SP_T[lang].name, 'stage'); Snd.fx.special(); G.henshin = 0.5; G.shake = 6;
+  G.sp = 0; G.spPend = 0; G.spT = SP_DUR; G.spN = (G.spN || 0) + 1;
+  let seen = false; try { seen = localStorage.getItem(SP_SEEN) === '1'; } catch { }
+  G.cine = makeCine(seen); Snd.duck(true); cineSize(); $('spfx').classList.remove('hide');
   return true;
+}
+// cut-scene timeline: the game is frozen (no movement, no damage, no spawns) until it ends. Only the finisher hits.
+const SP_SEEN = 'kyoka-spseen'; // after the first full viewing, a tap skips (cosmetic, not part of the save)
+const CEV = [[0, () => Snd.fx.spSting()], ...[0, 1, 2, 3, 4].map(j => [CINE.E0 + j * CINE.ED, () => Snd.fx.spEntry(j)]),
+  [CINE.BOOM, () => { Snd.fx.spBoom(); G.shake = 10; }], [CINE.FIN, () => Snd.fx.spBeam()], [CINE.HIT, () => spBlast()]];
+function cineTick(dt) {
+  const c = G.cine; c.t += dt; G.spT = Math.max(0.001, SP_DUR - c.t);
+  while (c.ev < CEV.length && c.t >= CEV[c.ev][0]) CEV[c.ev++][1]();
+  tickCine(c, dt, cineW, cineH);
+  if (c.t >= CINE.HIT) { tickFx(dt); for (let i = G.enemies.length - 1; i >= 0; i--) if (G.enemies[i].hp <= 0) { G.enemies[i] = G.enemies[G.enemies.length - 1]; G.enemies.pop(); } } // the pops play out
+  if (c.t >= CINE.END) endCine();
+}
+function endCine() {
+  G.cine = null; G.spT = 0; G.p.inv = Math.max(G.p.inv, 1); Snd.duck(false); $('spfx').classList.add('hide');
+  try { localStorage.setItem(SP_SEEN, '1'); } catch { }
+}
+function skipCine() { // jump to the finisher (sounds and shakes before it are dropped, the hit itself still lands)
+  const c = G && G.cine; if (!c || !c.canSkip || c.t >= CINE.FIN) return;
+  c.t = CINE.FIN; c.skipped = true; c.sparks.length = 0; while (c.ev < CEV.length && CEV[c.ev][0] < CINE.FIN) c.ev++;
+}
+let cineW = 390, cineH = 844, cineCtx = null;
+function cineSize() {
+  const cv = $('spfx'), dpr = Math.min(window.devicePixelRatio || 1, innerWidth < 700 ? 1.5 : 2); cineW = innerWidth; cineH = innerHeight;
+  cv.width = Math.round(cineW * dpr); cv.height = Math.round(cineH * dpr); cineCtx = cv.getContext('2d'); cineCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function drawCineNow() {
+  const c = G.cine, spr = CINE_ORDER.map(i => R['kr' + i + '0'].canvas), pose = CINE_ORDER.map(i => (R['kr' + i + 'Dash'] || R['kr' + i + '0']).canvas);
+  drawCine(cineCtx, cineW, cineH, c, { spr, pose, title: SP_T[lang].name.replace(/^⚡\s*/, ''), skip: c.canSkip ? SP_T[lang].skip : '' });
 }
 function spBlast() {
   const p = G.p, hw = RD.viewW * 0.62, hh = RD.viewH * 0.58, bossFrac = G.endless ? 0.05 : 0.1; // endless bosses: capped at 5% of max HP
@@ -613,17 +642,6 @@ function spBlast() {
   }
   G.ebul = G.ebul.filter(b => Math.abs(b.x - p.x) > hw || Math.abs(b.y - p.y) > hh);
   for (let i = 0; i < 5; i++) burst(p.x + (i - 2) * 46, p.y - 34, [RANGER_HEX[i], 0xffffff, 0xffd94a], 22, 180, 1.8, 24);
-}
-function drawSquad(p, t) { // the five-colour squad poses in an arc behind the player, then the blast
-  const el = SP_DUR - G.spT;
-  for (let i = 0; i < 5; i++) {
-    const a = Math.min(1, Math.max(0, (el - i * 0.08) * 5)), out = Math.min(1, G.spT * 2.5), s = 1.15 * a * out; if (s <= 0.02) continue;
-    const x = p.x + (i - 2) * 40, z = p.y - 46 + Math.abs(i - 2) * 10, h = (el < SP_HIT ? Math.sin(Math.min(1, el / SP_HIT) * Math.PI) * 24 : 0) + 2;
-    const fr = R['kr' + i + (el > 0.45 && el < SP_HIT ? 'Dash' : '0')] || R['kr' + i + '0'];
-    RD.glow(0, x, 18 + h, z, 70 * s, 80 * s, 0, RANGER_COL[i], 0.55 * out);
-    RD.spr(fr, x, h, z, { flip: i > 2, s }, RD.chars);
-  }
-  if (el < SP_HIT) { const k = el / SP_HIT; RD.glow(3, p.x, 20, p.y - 30, 60 + k * 160, 60 + k * 160, t * 6, [1, 0.95, 0.7], 0.7 * k); }
 }
 function finalBlast() { // キョンレンジャー・ファイナル爆破
   const p = G.p; G.blasts.push({ x: p.x, y: p.y, life: 1.0, max: 1.0, big: 1 }); G.shake = 14; G.flash = Math.max(G.flash, 0.45); G.flashRed = 0; Snd.fx.boom();
@@ -1220,7 +1238,6 @@ function render(dt) {
   drawDog(G.dog, dogScale());
   for (const g of G.ghosts) RD.glow(0, g.x, 14, g.y, 26, 34, 0, G.char === 'ranger' ? RANGER_COL[G.rc] : [1, 0.6, 0.85], g.life / g.max * 0.5);
   drawKyoka(p.x, p.y, p, t);
-  if (G.spT > 0) drawSquad(p, t);
   if (G.henshin > 0) { const k = G.henshin / 0.5, hc = G.char === 'ranger' ? RANGER_COL[G.rc] : [1, 0.95, 0.7]; RD.glow(3, p.x, 16, p.y, 70 * k + 20, 70 * k + 20, t * 4, hc, k); RD.glow(0, p.x, 16, p.y, 60, 60, 0, [1, 0.8, 0.9], k * 0.8); }
   if (G.lvFx > 0) { const k = G.lvFx / 0.8; RD.glow(2, p.x, 30, p.y, 30, 80, Math.PI / 2, [1, 0.85, 0.4], k * 0.8); RD.glow(1, p.x, 0.5, p.y, 50 + (1 - k) * 60, 50 + (1 - k) * 60, 0, [1, 0.8, 0.4], k, true); }
   // pickup radius hint
@@ -1613,6 +1630,7 @@ addEventListener('keydown', e => {
   keys.add(e.code);
   if (e.code === 'KeyM') toggleMute();
   if (state === 'title' && (e.code === 'Enter' || e.code === 'Space')) onStart();
+  else if (state === 'play' && G.cine) { if (e.code === 'Escape' || e.code === 'KeyP') setPause(true); else if (['Space', 'Enter', 'KeyQ'].includes(e.code)) skipCine(); }
   else if (state === 'play') { if (e.code === 'Space') dash(); if (e.code === 'KeyQ') useSp(); if (e.code === 'Escape' || e.code === 'KeyP') setPause(true); }
   else if (state === 'paused' && (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'Enter')) setPause(false);
   else if (state === 'levelup') {
@@ -1631,6 +1649,8 @@ cv.addEventListener('pointermove', e => { if (joy.on && e.pointerId === joy.id) 
 const endJoy = e => { if (e.pointerId === joy.id) joy.on = false; };
 cv.addEventListener('pointerup', endJoy); cv.addEventListener('pointercancel', endJoy);
 $('dashbtn').addEventListener('pointerdown', e => { e.preventDefault(); dash(); });
+$('spfx').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); skipCine(); });
+addEventListener('resize', () => { if (G && G.cine) cineSize(); });
 $('spbtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); useSp(); });
 $('startbtn').addEventListener('click', onStart);
 $('s-go').addEventListener('click', openDiff); $('df-back').addEventListener('click', diffBack); $('s-back').addEventListener('click', closeScreen);
@@ -1797,10 +1817,10 @@ function frame(now) {
   let dt = Math.max(0, (now - last) / 1000); last = now; if (dt > 1 / 20) dt = 1 / 20;
   gTime += dt;
   if (state === 'title') titleT += dt;
-  if (state === 'play') update(dt);
+  if (state === 'play') { if (G.cine) cineTick(dt); else update(dt); }
   else if (G && (state === 'levelup' || state === 'paused' || state === 'over' || state === 'win')) { /* frozen */ }
   if (G && state !== 'title') hud();
-  const r0 = performance.now(); render(dt); const r1 = performance.now();
+  const r0 = performance.now(); render(dt); if (G && G.cine && state !== 'title') drawCineNow(); const r1 = performance.now();
   const P = window.__kyokaProf; if (P) { P.n++; P.js += r1 - now0; P.render += r1 - r0; }
 }
 applyLang();
@@ -2094,7 +2114,7 @@ window.__kyoka = {
   get state() { return state; }, get G() { return G; }, start: startGame, pick: i => { window.__kyokaTest = true; pick(i); },
   spawn(n, type) { for (let i = 0; i < n; i++) { const [x, y] = ringPos(Math.random() * 120); spawnEnemy(type || pickType(), x, y); } },
   get profile() { return profile; }, encode, decode, iconPNG, end(won) { if (G) endGame(won); }, pause() { setPause(true); },
-  levelUp() { if (G && state === 'play') { G.pending++; openLevelUp(); } }, showOffers(ids) { if (G) { if (state === 'play') G.pending++; openLevelUp(ids); } }, setAuto(v) { if (G) G.auto = v; }, get offers() { return offers.slice(); }, lvOf: id => lvOf(id), offersFor: () => makeOffers(), chestRoll: () => chestRewards(), refreshWeps: () => refreshWeps(), step(dt) { if (state === 'play') update(dt); },
+  levelUp() { if (G && state === 'play') { G.pending++; openLevelUp(); } }, showOffers(ids) { if (G) { if (state === 'play') G.pending++; openLevelUp(ids); } }, setAuto(v) { if (G) G.auto = v; }, get offers() { return offers.slice(); }, lvOf: id => lvOf(id), offersFor: () => makeOffers(), chestRoll: () => chestRewards(), refreshWeps: () => refreshWeps(), step(dt) { if (state === 'play') G.cine ? cineTick(dt) : update(dt); },
   skipTo(t) { if (G) G.t = t; }, give(id) { if (!G) return; window.__kyokaTest = true; offers = [id]; state = 'levelup'; G.pending++; pick(0); },
   setProfile(p) { commitProfile(fixProfile(Object.assign(emptyProfile(), p))); validSel(); updateRec(); }, select(c, s) { sel.char = c; sel.stage = s; saveSel(); }, get sel() { return sel; },
   openShop, openZukan, openSelect, onStart, openDiff, pickDiff, setDiff(d) { sel.diff = d; saveSel(); }, DIFF, tryBuy, confirmBorrow, closeScreen, continueEndless, get screen() { return screen; }, get modal() { return modal; },
@@ -2102,7 +2122,7 @@ window.__kyoka = {
   openChest: () => { window.__kyokaTest = true; if (G && state === 'play') openChest(); }, closeChest, get chestRw() { return chestRw; }, usePickup: k => G && usePickup(k),
   drop(k, dx, dy) { if (G) G.items.push({ x: G.p.x + (dx || 0), y: G.p.y + (dy || 0), k }); }, openCheat, submitCheat, askRefund, renderShop,
   runCode: () => G && runCode(), get savedRunCode() { try { return localStorage.getItem(RUN_KEY); } catch (e) { return null; } }, openResumeAsk, openRunCode, decodeRun, runProblem: r => runProblem(r), restoreRun, saveRun, discardRun,
-  useSp: () => useSp(), fillSp() { if (G) { G.sp = 1; G.spPend = 0; } }, get spState() { return G && { sp: G.sp, spT: G.spT, spN: G.spN }; },
+  useSp: () => useSp(), fillSp() { if (G) { G.sp = 1; G.spPend = 0; } }, get spState() { return G && { sp: G.sp, spT: G.spT, spN: G.spN, cine: G.cine ? { t: G.cine.t, canSkip: G.cine.canSkip, skipped: G.cine.skipped, sparks: G.cine.sparks.length } : null }; }, skipSp: () => skipCine(),
   spawnBoss(two) { if (G) { G.nextBoss = G.t; G.bossDone = false; spawning(0); if (two && G.boss && !G.boss.twin) addTwinBoss(); return G.boss && G.boss.type; } }, killBoss() { if (G && G.boss) { G.boss.hp = 1; hurtEnemy(G.boss, 1e6, 0, 0); } }, SDEF, WEAPONS, PASSIVES, MAXLV, EVO, ACH_IDS, spentTotal: () => spentTotal(profile), has: id => hasAch(profile, id),
   RD, textAudit(l) { // UI test helper: phase-6 texts present, no placeholders, no stray kana / Japanese
     const it = I18N[l].items, st = P2[l].st, miss = [], bad = [], kana = [], strs = [];

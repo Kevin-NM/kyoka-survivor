@@ -570,3 +570,6 @@ body:has(#end:not(.hide)) #toast,body:has(#chest:not(.hide)) #toast{top:10px;bot
 #spbtn.ready #sp-key{color:#fff;text-shadow:0 1px 0 #000}
 #spbtn.touch.ready{right:20px;bottom:172px}
 @keyframes spPulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+
+/* 必殺技 cut-scene overlay: above the HUD and buttons, below modals and toasts */
+#spfx{position:fixed;inset:0;width:100%;height:100%;z-index:20;touch-action:none;cursor:pointer}
