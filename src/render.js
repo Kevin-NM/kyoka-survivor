@@ -5,7 +5,7 @@ import {
   WebGLRenderer, Scene, PerspectiveCamera, OrthographicCamera, WebGLRenderTarget, HalfFloatType, UnsignedByteType,
   LinearFilter, NearestFilter, RepeatWrapping, CanvasTexture, InstancedBufferGeometry, InstancedBufferAttribute,
   Float32BufferAttribute, Mesh, ShaderMaterial, PlaneGeometry, Vector2, Vector3, AdditiveBlending, CustomBlending,
-  OneFactor, AddEquation, NormalBlending, NotEqualStencilFunc, ReplaceStencilOp, KeepStencilOp, DynamicDrawUsage,
+  OneFactor, OneMinusSrcAlphaFactor, AddEquation, NormalBlending, NotEqualStencilFunc, ReplaceStencilOp, KeepStencilOp, DynamicDrawUsage,
   NoColorSpace, LinearSRGBColorSpace, Color, BufferGeometry, DoubleSide, GreaterDepth
 } from 'three';
 
@@ -91,7 +91,7 @@ void main(){
   vCol = iCol;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(wp, 1.0);
 }`;
-const GLOW_FS_ADD = `uniform sampler2D uTex; varying vec2 vUv; varying vec4 vCol;
+const GLOW_FS_PRE = `uniform sampler2D uTex; varying vec2 vUv; varying vec4 vCol;
 void main(){ float a = texture2D(uTex, vUv).a * vCol.a; gl_FragColor = vec4(vCol.rgb * a, a); }`;
 const GLOW_FS_NORM = `uniform sampler2D uTex; varying vec2 vUv; varying vec4 vCol;
 void main(){ float a = texture2D(uTex, vUv).a * vCol.a; if (a < 0.003) discard; gl_FragColor = vec4(vCol.rgb, a); }`;
@@ -193,8 +193,10 @@ export class Renderer {
     this.ground = new Mesh(gg, this.groundMat); this.ground.renderOrder = 0; this.ground.frustumCulled = false; this.scene.add(this.ground);
     // blobs (contact shadows)
     const glowLayout = [['iPos', 3], ['iSize', 3], ['iUV', 4], ['iCol', 4], ['iMode', 1]];
-    const mkGlow = (add, depthTest) => new ShaderMaterial({ vertexShader: GLOW_VS, fragmentShader: add ? GLOW_FS_ADD : GLOW_FS_NORM, uniforms: { uTex: { value: this.tGlow }, uUp: common.uUp },
-      transparent: true, side: DoubleSide, depthWrite: false, depthTest, blending: add ? CustomBlending : NormalBlending, blendSrc: OneFactor, blendDst: OneFactor, blendEquation: AddEquation });
+    // glows (shots, beams, sparks): premultiplied "over" blending, not additive, so many overlapping glows settle on their own colour
+    // instead of stacking up to white; dense barrages stay readable
+    const mkGlow = (add, depthTest) => new ShaderMaterial({ vertexShader: GLOW_VS, fragmentShader: add ? GLOW_FS_PRE : GLOW_FS_NORM, uniforms: { uTex: { value: this.tGlow }, uUp: common.uUp },
+      transparent: true, side: DoubleSide, depthWrite: false, depthTest, blending: add ? CustomBlending : NormalBlending, blendSrc: OneFactor, blendDst: OneMinusSrcAlphaFactor, blendEquation: AddEquation });
     this.blob = new Batch(900, glowLayout, mkGlow(false, true), 'center'); this.blob.mesh.renderOrder = 1; this.scene.add(this.blob.mesh);
     // sprites + projected shadows (share instance buffers)
     const spLayout = [['iPos', 3], ['iSize', 2], ['iUV', 4], ['iTint', 4], ['iPar', 4]];
