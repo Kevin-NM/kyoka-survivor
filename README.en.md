@@ -10,6 +10,8 @@
 
 **▶ Play: [https://kevin-nm.github.io/kyoka-survivor/](https://kevin-nm.github.io/kyoka-survivor/)**
 
+Version v1.1.0 (the title screen shows the version and build date in the bottom-right corner)
+
 <img src="assets/screenshot-title.png" width="420" alt="Title screen"> <img src="assets/screenshot-play.png" width="420" alt="Gameplay">
 
 </div>
@@ -63,7 +65,7 @@ Guide Kyon, fight with strawberries and seals, and survive for 5 minutes!
 - **Strawberry Coins and a shop** with permanent upgrades (you can even borrow). The shop has three tabs: "⭐ Basics", "🎀 きょん goods" (きょんカフェ = slow HP regen, 熱唱タオル = less boss damage, ハムナンバーカード = a level-up at the start) and "📈 Keep growing" (damage, HP, speed, pickup range, coins and XP; buy them again and again, each level a little pricier).
 - **Kyon encyclopedia (70 pages), 64 achievements, and an endless mode.**
 - **Grow forever**: once every weapon and item is maxed (or the slots are full), level-ups offer stacking boosts instead of food cards: Damage +3% (compounding), Max HP +5, Cooldowns −1%, Area +3% and HP regen +0.25/s.
-- **Endless mode**: keep going after the 5-minute clear. Foes get stronger every minute and elite hordes come more and more often; shooters and chargers make standing still a losing plan. Bosses come every 2 minutes at first, down to every 45 seconds as the threat rises, sometimes two at once (a red ring warns before each big attack). You get one more weapon slot at 5:00, 6:30, 8:00 and 9:30 (up to 10), then one more every minute until every weapon you can get in that run fits (21 with everything unlocked, at 20:30). Shooters only fire while they are on screen, and new foes don't appear right in front of where you are running, so moving is the way to survive. On Geki-muzu the threat reaches Lv10 around 12:00. The HUD shows a threat level and your best endless time is kept.
+- **Endless mode**: keep going after the 5-minute clear. Foes get stronger every minute and elite hordes come more and more often; shooters and chargers make standing still a losing plan. Bosses come every 2 minutes at first, down to every 45 seconds as the threat rises, sometimes two at once (a red ring warns before each big attack). You get one more weapon slot at 5:00, 6:30, 8:00 and 9:30 (up to 10), then one more every minute until every weapon you can get in that run fits (21 with everything unlocked, at 20:30). In endless, weapons and items keep levelling past MAX (and after evolving): cards and the HUD show "Lv 15 → 16", and each level adds a little damage and area, a bit less each time (no extra projectiles, so phones stay smooth). Shooters only fire while they are on screen, and new foes don't appear right in front of where you are running, so moving is the way to survive. On Geki-muzu the threat reaches Lv10 around 12:00. The HUD shows a threat level and your best endless time is kept.
 
 <details>
 <summary>Evolutions (14)</summary>
@@ -157,7 +159,7 @@ Type them into "✨ ひみつのコード" on the title screen (hiragana, kataka
 ```sh
 npm i                 # esbuild + three.js
 node build.mjs        # bundles src/ into one dist/index.html, copied to ./index.html (favicon inlined as data URIs)
-npm test              # unit tests for save codes and meta (shop, achievements, encyclopedia); docs/save-code tables match the source
+npm test              # unit tests for save codes, resume codes (old v3 codes still read) and meta (shop, achievements, encyclopedia); docs/save-code tables match the source
 ```
 
 Browser tests use headless Chrome through playwright-core (`cd test && npm i`). Screenshots go to `shots/` (gitignored).
