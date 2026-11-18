@@ -1,0 +1,21 @@
+{
+  "name": "kyoka-game",
+  "version": "1.0.0",
+  "description": "きょうかサバイバー: a small fan-made browser survivors-like.",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/save.test.mjs && node test/meta.test.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.187.0"
+  },
+  "private": true
+}

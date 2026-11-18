@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#24122a">
+<title>きょうかサバイバー 🍓🦭</title>
+<style>/*CSS*/</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hide">
+  <div id="xpbar"><div id="xpfill"></div><div id="xpshine"></div></div>
+  <div id="player">
+    <div class="medal"><img id="portrait" alt=""><div id="lvbadge"><small>Lv</small><span id="lvl">1</span></div></div>
+    <div class="bars">
+      <div id="hpwrap"><div id="hpfill"></div><span id="hptxt"></span></div>
+      <div id="weps"></div>
+    </div>
+  </div>
+  <div id="timerplate"><span id="timer">5:00</span><small id="diffchip"></small><small id="p6chip" class="hide"></small></div>
+  <div id="counts"><div><i class="ic-crow"></i><span id="kills">0</span></div><div><i class="ic-seal"></i><span id="sealn">0</span></div><div><i class="ic-coin"></i><span id="coinn">0</span></div></div>
+  <div id="bossbar" class="hide"><div class="bn"><span id="bossname"></span><b id="bossx" class="hide">×2</b></div><div class="bar"><div id="bossfill"></div></div><div id="bossbar2" class="bar b2 hide"><div id="bossfill2"></div></div></div>
+</div>
+<div id="banner"></div>
+<div id="toast" class="hide"></div>
+<div id="joy" class="hide"><div id="joyk"></div></div>
+<button id="dashbtn" class="hide"></button>
+<button id="spbtn" class="hide" aria-label="special"><span id="sp-ring"></span><b id="sp-lbl"></b><small id="sp-key">Q</small></button>
+<div id="topbtns"><button id="pausebtn" class="hide" aria-label="pause"><i class="ic-pause"></i></button><button id="mutebtn" aria-label="mute"><i class="ic-snd"></i></button></div>
+
+<div id="title" class="ol">
+  <div class="logo">
+    <img id="t-logo-l" class="lg-l" alt=""><h1 id="t-title"></h1><img id="t-logo-r" class="lg-r" alt="">
+  </div>
+  <div class="ribbon"><span id="t-sub"></span></div>
+  <div class="spacer" id="t-spacer"></div>
+  <button class="btn big" id="startbtn"></button>
+  <div class="tgrid"><button class="btn sm shop" id="shopbtn"></button><button class="btn sm book" id="zukanbtn"></button><button class="btn sm alt" id="codebtn"></button><button class="btn sm alt" id="runbtn"></button><button class="btn sm alt" id="guidebtn"></button><button class="btn sm cheat" id="cheatbtn"></button></div>
+  <div class="rec" id="t-rec"></div>
+  <div class="hint"><div id="t-how"></div><div id="t-goal"></div></div>
+  <a id="ghbtn" href="https://github.com/Kevin-NM/kyoka-survivor" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span id="gh-l"></span></a>
+  <div class="langs"><button data-l="ja">日本語</button><button data-l="zh">繁體中文</button><button data-l="en">English</button></div>
+</div>
+
+<div id="levelup" class="ol hide">
+  <div class="lvhead"><h2 id="l-title"></h2><div id="l-choose"></div></div>
+  <div id="cards"></div>
+</div>
+
+<div id="pause" class="ol panel hide">
+  <div class="frame"><h2 id="p-title"></h2><div class="codebox" id="p-code"><div class="cl"></div><div class="crow"><div class="code"></div><button class="btn copy"></button></div><div class="cmsg"></div><div class="ch"></div></div><button class="btn big gold" id="runcodebtn"></button><div class="row"><button class="btn" id="resumebtn"></button><button class="btn alt" id="quitbtn"></button></div></div>
+</div>
+
+<div id="end" class="ol panel hide">
+  <div class="frame">
+    <h2 id="e-title"></h2>
+    <div class="msg" id="e-msg"></div>
+    <div class="stats" id="e-stats"></div>
+    <div class="ecoins" id="e-coins"></div>
+    <div class="erec" id="e-rec"></div>
+    <div class="codebox" id="e-code"><div class="cl"></div><div class="crow"><div class="code"></div><button class="btn copy"></button></div><div class="cmsg"></div><div class="ch"></div></div>
+    <div class="row"><button class="btn gold hide" id="endlessbtn"></button><button class="btn" id="retrybtn"></button><button class="btn alt" id="titlebtn"></button></div>
+    <div class="eachs hide" id="e-ach"></div>
+  </div>
+</div>
+
+<div id="select" class="ol panel hide">
+  <div class="frame sframe">
+    <h2 id="s-title"></h2>
+    <div class="slabel" id="s-l-char"></div><div class="scards" id="s-chars"></div><div class="cinfo" id="s-cinfo" aria-live="polite"></div>
+    <div class="slabel" id="s-l-stage"></div><div class="scards" id="s-stages"></div>
+    <div class="row"><button class="btn big" id="s-go"></button><button class="btn alt" id="s-back"></button></div>
+  </div>
+</div>
+
+<div id="shop" class="ol panel hide">
+  <div class="frame shframe">
+    <h2 id="sh-title"></h2>
+    <div class="shead"><img id="sh-ham" alt=""><div class="bubble" id="sh-say"></div></div>
+    <div class="tabs shtabs" id="sh-tabs"><button data-cat="base"></button><button data-cat="goods"></button><button data-cat="rep"></button></div><div class="ulist" id="sh-list"></div>
+    <div class="row shrow"><div class="wallet" id="sh-wallet"></div><button class="btn sm alt" id="sh-refund"></button><button class="btn alt" id="sh-close"></button></div>
+  </div>
+</div>
+
+<div id="borrow" class="ol panel modal hide">
+  <div class="frame">
+    <h2 id="b-title"></h2>
+    <img id="b-ham" class="bham" alt="">
+    <div class="msg" id="b-msg"></div>
+    <div class="row"><button class="btn gold" id="b-yes"></button><button class="btn alt" id="b-no"></button></div>
+  </div>
+</div>
+
+<div id="zukan" class="ol panel hide">
+  <div class="frame zframe">
+    <h2 id="zk-title"></h2>
+    <div class="tabs"><button id="zk-tab-book" class="on"></button><button id="zk-tab-ach"></button><button id="zk-tab-evo"></button></div>
+    <div class="zcount" id="zk-count"></div>
+    <div class="gbody" id="zk-body"></div>
+    <div class="zdetail hide" id="zk-detail"></div>
+    <button class="btn alt" id="zk-close"></button>
+  </div>
+</div>
+
+<div id="codein" class="ol panel modal hide">
+  <div class="frame">
+    <h2 id="ci-title"></h2>
+    <div class="msg" id="ci-help"></div>
+    <input id="ci-input" type="text" maxlength="200" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-JKMN-…">
+    <div class="row"><button class="btn sm alt" id="ci-paste"></button><button class="btn sm alt" id="ci-clear"></button></div>
+    <div class="cimsg" id="ci-msg"></div>
+    <div class="row"><button class="btn" id="ci-ok"></button><button class="btn alt" id="ci-back"></button></div>
+  </div>
+</div>
+
+<div id="runcode" class="ol panel modal hide">
+  <div class="frame rcframe">
+    <h2 id="rc-title"></h2>
+    <div class="rccode" id="rc-code"></div>
+    <div class="msg" id="rc-help"></div>
+    <div class="cimsg" id="rc-msg"></div>
+    <div class="row"><button class="btn big gold" id="rc-copy"></button><button class="btn alt" id="rc-close"></button></div>
+  </div>
+</div>
+
+<div id="resumeask" class="ol panel modal hide">
+  <div class="frame raframe">
+    <h2 id="ra-title"></h2>
+    <div class="rainfo" id="ra-info"></div>
+    <button class="btn big gold" id="ra-yes"></button>
+    <button class="btn alt" id="ra-no"></button>
+  </div>
+</div>
+
+<div id="guide" class="ol panel modal hide">
+  <div class="frame gframe">
+    <h2 id="g-title"></h2>
+    <div class="tabs"><button id="g-tab-easy" class="on"></button><button id="g-tab-more"></button></div>
+    <div class="gbody" id="g-easy"></div>
+    <div class="gbody hide" id="g-more"></div>
+    <div class="ghint hide" id="g-hint"></div>
+    <button class="btn" id="g-close"></button>
+  </div>
+</div>
+
+<div id="chest" class="ol hide">
+  <div class="chestbox">
+    <h2 id="ch-title"></h2>
+    <img id="ch-img" class="chimg" alt="">
+    <div class="chslots" id="ch-slots"></div>
+    <div class="chsay" id="ch-say"></div>
+    <button class="btn big gold hide" id="ch-ok"></button>
+  </div>
+</div>
+
+<div id="diff" class="ol panel modal hide">
+  <div class="frame dframe">
+    <h2 id="df-title"></h2>
+    <div class="dstage" id="df-stage"></div>
+    <div class="dgrid" id="df-list"></div>
+    <button class="btn alt sm" id="df-back"></button>
+  </div>
+</div>
+
+<div id="cheat" class="ol panel modal hide">
+  <div class="frame">
+    <h2 id="cc-title"></h2>
+    <div class="msg" id="cc-help"></div>
+    <input id="cc-input" type="text" maxlength="24" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="ccmsg" id="cc-msg"></div>
+    <div class="row"><button class="btn gold" id="cc-ok"></button><button class="btn alt" id="cc-back"></button></div>
+  </div>
+</div>
+
+<script>/*JS*/</script>
+</body>
+</html>
