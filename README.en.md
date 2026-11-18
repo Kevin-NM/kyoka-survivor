@@ -113,7 +113,8 @@ On Hard and Geki-muzu, foe HP and numbers ramp up over the first 2 minutes. From
 ## Special move (キョンレンジャー大集合)
 
 - Defeating foes fills the gauge at the bottom right (about once every 60–90 s). When it's full, a big "Special" button appears (above 衝刺 on phones; Q on a keyboard).
-- Press it and the five-colour キョンレンジャー squad poses, then a big blast clears the foes on screen (2.4 s; the game keeps running).
+- Press it for a tokusatsu-style sequence (about 4.7 s; the game is frozen meanwhile and foes don't move): the screen dims and a cut-in slides in → キョンレッド, キョンブルー, キョンイエロー, キョングリーン and キョンピンク land one by one in a pillar of light → the five pose in front of a five-colour explosion → a five-colour beam sweeps the screen and clears the foes on it.
+- From the second time on, tap the screen (Enter, Space or Q on a keyboard) to skip; the final beam still lands.
 - Bosses take 10% of their max HP (capped at 5% in endless).
 - Every character can use it; キョンレンジャー fills the gauge faster (about every 45–60 s). The gauge is kept in resume codes.
 
@@ -168,6 +169,7 @@ Browser tests use headless Chrome through playwright-core (`cd test && npm i`). 
 | `node test/restore.mjs` | Entering a code replaces the save (no coin farming), ichigo once a day, best times shown consistently |
 | `node test/hudfit.mjs` | On phones (473, 390, 360 wide), 10 weapons + 5 items + every boost, the timer and two boss bars never overlap |
 | `node test/lvcards.mjs` | Phone level-up cards: number, name, stars and NEW never collide |
+| `node test/cine.mjs` | Special-move sequence: game frozen, foes cleared at the end, skippable the second time, capped sparks (key-frame shots at 390 and 960) |
 | `node test/special.mjs` | Special move: gauge rate, button, on-screen foes cleared, capped boss damage, kept in resume codes |
 | `node test/runsave.mjs` | Mid-run save: pause → resume code, reload → continue, a code can't be used twice |
 | `node test/afk.mjs road geki` | Endless with a maxed build: standing still should fall around 8–10 min; `KITE=1` runs a simple kiting bot instead (aim: 15–20 min). One short scripted run each |

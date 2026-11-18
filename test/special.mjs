@@ -7,9 +7,9 @@ const ROOT = decodeURI(new URL('..', import.meta.url).pathname), SHOTS = process
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 let n = 0, fails = 0; const errs = [];
 const ok = (c, m) => { n++; if (!c) { fails++; console.log('FAIL', m); } };
-// run code: v2 keeps the gauge, old v1 codes still decode (empty gauge)
+// run code keeps the gauge (v2+), old v1 codes still decode (empty gauge)
 { const r = { id: 7, stage: 'apple', char: 'kyon', diff: 'normal', t: 100, lvl: 5, xp: 0.5, hp: 0.5, pending: 0, kills: 50, picked: 3, banked: 0, bossKills: 0, nextBoss: 150, revives: 0, weapons: { berry: 2 }, evo: {}, passives: {}, boost: {}, sp: 0.73 };
-  const d = decodeRun(encodeRun(r)); ok(d && Math.abs(d.sp - 0.73) < 0.006 && d.ver === 2, 'run code keeps the gauge ' + JSON.stringify(d && d.sp)); }
+  const d = decodeRun(encodeRun(r)); ok(d && Math.abs(d.sp - 0.73) < 0.006 && d.ver === 3, 'run code keeps the gauge ' + JSON.stringify(d && d.sp)); }
 for (const [w, h, lang] of [[473, 1024, 'zh'], [390, 844, 'zh'], [360, 740, 'zh'], [390, 844, 'ja'], [390, 844, 'en'], [960, 540, 'zh']]) {
   const phone = w < 600;
   const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: phone, isMobile: phone, deviceScaleFactor: phone ? 2 : 1 });
@@ -38,18 +38,19 @@ for (const [w, h, lang] of [[473, 1024, 'zh'], [390, 844, 'zh'], [360, 740, 'zh'
   ok(pre.ready && pre.w >= 70 && !pre.overDash && !pre.overTop && !pre.off, tag + ' ready button big and clear of 衝刺 / pause ' + JSON.stringify(pre));
   // press it (button on phones, Q on PC)
   if (phone) await p.locator('#spbtn').dispatchEvent('pointerdown'); else await p.keyboard.press('KeyQ');
-  await K(() => { for (let i = 0; i < 12; i++) window.__kyoka.step(1 / 30); });
+  // the cut-scene (about 4.7 s): the game is frozen meanwhile, the overlay is shown, the finisher lands near the end
+  const mid = await K(() => { const k = window.__kyoka, t0 = k.G.t; window.__kyokaHold = true; for (let i = 0; i < 75; i++) k.step(1 / 30); return { dt: k.G.t - t0, cine: !!k.G.cine, ov: !document.getElementById('spfx').classList.contains('hide') }; });
+  ok(mid.dt === 0 && mid.cine && mid.ov, tag + ' game frozen under the cut-scene ' + JSON.stringify(mid));
   await p.waitForTimeout(120);
   if (SHOTS && (lang === 'zh' || w === 390)) await p.screenshot({ path: `${SHOTS}/special-${w}-${lang}.png` });
-  const post = await K(() => { const k = window.__kyoka, p = k.G.p; for (let i = 0; i < 18; i++) k.step(1 / 30); const hw = 0.5 * window.__kyoka.RD.viewW, hh = 0.5 * window.__kyoka.RD.viewH;
-    return { spN: k.G.spN, sp: k.G.sp, left: k.G.enemies.filter(e => e._pre && !e.boss && e.hp > 0 && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh).length, boss: k.G.boss && k.G.boss.hp, max: k.G.boss && k.G.boss.maxHp, banner: document.getElementById('banner').textContent }; });
+  const post = await K(() => { const k = window.__kyoka, p = k.G.p; for (let i = 0; i < 40; i++) k.step(1 / 30); const hw = 0.5 * window.__kyoka.RD.viewW, hh = 0.5 * window.__kyoka.RD.viewH;
+    return { spN: k.G.spN, sp: k.G.sp, left: k.G.enemies.filter(e => e._pre && !e.boss && e.hp > 0 && Math.abs(e.x - p.x) < hw && Math.abs(e.y - p.y) < hh).length, boss: k.G.boss && k.G.boss.hp, max: k.G.boss && k.G.boss.maxHp }; });
   ok(post.spN === 1 && post.sp < 0.02, tag + ' special used ' + JSON.stringify(post));
   ok(post.left <= 2, tag + ' on-screen foes cleared, left: ' + post.left);
   const took = (pre.bossHp - post.boss) / post.max; ok(post.boss > 0 && took > 0.02 && took <= 0.05 + 0.03, tag + ` endless boss took a capped share ${took.toFixed(3)}`);
-  ok(/キョンレンジャー/.test(post.banner), tag + ' banner ' + post.banner);
-  // animation is short and the game keeps running
-  const fin = await K(() => { const k = window.__kyoka; const t0 = k.G.t; for (let i = 0; i < 60; i++) k.step(1 / 30); return { spT: k.G.spT, dt: k.G.t - t0, state: k.state }; });
-  ok(fin.spT <= 0 && fin.dt > 1.9 && fin.state === 'play', tag + ' animation ends within 2.4 s, game not paused ' + JSON.stringify(fin));
+  // the cut-scene is over within 4.7 s and the game runs again
+  const fin = await K(() => { const k = window.__kyoka; window.__kyokaHold = false; const t0 = k.G.t; for (let i = 0; i < 60; i++) k.step(1 / 30); return { ended: !k.G.cine, spT: k.G.spT, dt: k.G.t - t0, state: k.state }; });
+  ok(fin.ended && fin.spT <= 0 && fin.dt > 1.1 && fin.state === 'play', tag + ' cut-scene ends, game runs again ' + JSON.stringify(fin));
   // run code from this page keeps the gauge
   const rc = await K(() => { const k = window.__kyoka; k.G.sp = 0.5; return k.decodeRun(k.runCode()).sp; });
   ok(Math.abs(rc - 0.5) < 0.006, tag + ' run code gauge ' + rc);
