@@ -74,6 +74,18 @@ const why = await q.evaluate(r => window.__kyoka.runProblem(r), hqCode);
 ok(why === 'locked', 'a code for a stage this save has not opened is rejected');
 await q.evaluate(c => { const k = window.__kyoka; k.setProfile(k.decode(c).profile); }, process.env.ALLCODE);
 ok((await q.evaluate(r => window.__kyoka.runProblem(r), hqCode)) === null, '... and accepted with the all-unlock code');
+// endless weapon slots: 10 by 9:30, then +1 a minute up to every obtainable weapon (21 with everything open); the run-code check follows
+{
+  const slots = await q.evaluate(r0 => { const k = window.__kyoka, W = k.WEAPONS, res = {};
+    for (const [t, n] of [[570, 10], [570, 11], [629, 11], [630, 11], [630, 12], [900, 10], [900, 15], [900, 16], [1230, 21], [1500, 21]]) {
+      const r = Object.assign({}, r0, { stage: 'road', endless: true, cleared: true, t, id: 5000 + t + n, weapons: Object.fromEntries(W.slice(0, n).map(w => [w, 1])), evo: {}, passives: {}, boosted: false });
+      res[t + '/' + n] = k.runProblem(r); }
+    return { res, all: W.length }; }, hqCode);
+  ok(slots.all === 21, `21 weapons exist (${slots.all})`);
+  const R = slots.res;
+  ok(R['570/10'] === null && R['570/11'] === 'check' && R['629/11'] === 'check' && R['630/11'] === null && R['630/12'] === 'check', `10 slots at 9:30, 11 from 10:30 (${JSON.stringify(R)})`);
+  ok(R['900/10'] === null && R['900/15'] === null && R['900/16'] === 'check' && R['1230/21'] === null && R['1500/21'] === null, '15 slots at 15:00, all 21 at 20:30');
+}
 // a saved run that becomes locked (another save restored) is kept, not silently deleted: the dialog says why; keep / discard
 {
   const ctx3 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); await ctx3.addInitScript(() => { if (!localStorage.getItem('kyoka-lang')) localStorage.setItem('kyoka-lang', 'zh'); });

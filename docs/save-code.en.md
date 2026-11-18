@@ -210,7 +210,7 @@ Checked top to bottom; the first failing check gives the reason.
 | 5 | Endless on a stage other than `road` without its clear, or without endless unlocked | `locked` |
 | 6 | Not endless but past 5:00 | `check` |
 | 7 | A stage-only weapon held outside its stage, `road`, a cleared stage, or the character's starting weapons | `locked` |
-| 8 | (Except runs started with kyonkyon) more weapons than slots, or more than 5 items. There are 6 slots; endless adds one at 5:00, 6:30, 8:00 and 9:30, up to 10 | `check` |
+| 8 | (Except runs started with kyonkyon) more weapons than slots, or more than 5 items. There are 6 slots; endless adds one at 5:00, 6:30, 8:00 and 9:30 (10), then one a minute up to the number of weapons the run can get (21 with everything open) | `check` |
 | 9 | A boost count above its cap (`b_spd`, `b_mag`, `b_regen` 20; `b_cd`, `b_area` 25; the others have no cap) | `check` |
 | 10 | Kills > 40 × seconds + 100, coins picked > 4 × seconds + 300, or bosses > 1 + seconds ÷ 60 | `check` |
 | 11 | More coins already banked than the run could earn (computed with this save's coin upgrades) | `check` |

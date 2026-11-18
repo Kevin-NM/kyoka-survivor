@@ -601,6 +601,8 @@ body:has(#end:not(.hide)) #toast,body:has(#chest:not(.hide)) #toast{top:10px;bot
 .rawhy code{display:block;margin-top:8px;font-family:"DejaVu Sans Mono",Menlo,Consolas,monospace;font-size:12px;word-break:break-all;user-select:all;-webkit-user-select:all;background:rgba(255,244,230,.12);border-radius:8px;padding:6px 8px}
 @media (max-height:480px){.rawhy{margin:0 auto 6px;line-height:1.35}.rawhy small{display:none}.rawhy code{margin-top:4px;padding:3px 6px;font-size:11px}}
 @media (max-height:480px){.raframe{gap:6px}.raframe h2{font-size:clamp(18px,4.4vh,24px);margin:0}.raframe .rainfo{padding:6px 12px}.raframe .rainfo img{width:44px;height:44px}.raframe .btn.big{padding:8px 20px;font-size:20px}.raframe .btn.alt{padding:6px 16px}}
+/* small phones: the banner's soft side padding must not push it past the screen edge */
+@media (max-width:420px){#banner span{padding:8px 22px;max-width:calc(100vw - 8px);box-sizing:border-box;text-align:center}}
 </style>
 </head>
 <body>
