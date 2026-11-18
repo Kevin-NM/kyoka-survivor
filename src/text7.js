@@ -11,6 +11,9 @@ export const RUN_T = {
     copy: 'コピー', copied: 'コピーしたよ！', close: 'とじる',
     enterTitle: 'つづきコードを いれる', enterHelp: 'ポーズで でた つづきコードを いれてね。<br>じゅもんも ここで いれられるよ。',
     askTitle: '前回の続きから遊ぶ？', cont: 'つづきから', fresh: '最初から', info: '{s}・{c}・{t}',
+    askBad: 'つづきの ゲームが あるけど、いまは つづけられないよ', keep: 'のこしておく', discard: 'すてる',
+    keepHint: 'コードは けさずに のこしておくよ。「のこしておく」なら つぎに ひらいたとき また きくね。',
+    badSaved: { check: 'セーブされた データが チェックに とおらなかったよ', locked: 'いまの セーブでは まだ ひらいていない ステージか キャラだよ。もとの じゅもんに もどすと つづけられるかも' },
     resumed: 'つづきから スタート！', slotUp: '🎒 ぶきスロット +1！（{n}こまで）',
     bad: { check: 'コードが ちがうみたい。もういちど たしかめてね', used: 'この つづきコードの ゲームは もう おわっているよ', locked: 'まだ ひらいていない ステージか キャラの コードだよ' }
   },
@@ -20,6 +23,9 @@ export const RUN_T = {
     copy: '複製', copied: '已複製！', close: '關閉',
     enterTitle: '輸入續玩碼', enterHelp: '輸入暫停時拿到的續玩碼。<br>存檔碼也可以在這裡輸入。',
     askTitle: '要從上次的進度繼續玩嗎？', cont: '繼續玩', fresh: '從頭開始', info: '{s}｜{c}｜{t}',
+    askBad: '有上次的進度，但現在沒辦法繼續', keep: '先保留', discard: '捨棄',
+    keepHint: '這組碼不會被刪掉。選「先保留」的話，下次打開時會再問你。',
+    badSaved: { check: '存下來的資料沒有通過檢查', locked: '這場用到目前存檔還沒解鎖的關卡或角色。換回原本的咒語後也許就能繼續' },
     resumed: '從上次的進度開始！', slotUp: '🎒 武器欄位 +1！（最多 {n} 個）',
     bad: { check: '這組碼好像不對，請再確認一次', used: '這組續玩碼的那一場已經結束了', locked: '這組碼用到了還沒解鎖的關卡或角色' }
   },
@@ -29,6 +35,9 @@ export const RUN_T = {
     copy: 'Copy', copied: 'Copied!', close: 'Close',
     enterTitle: 'Enter a resume code', enterHelp: 'Type the resume code from the pause menu.<br>Save codes work here too.',
     askTitle: 'Continue where you left off?', cont: 'Continue', fresh: 'Start over', info: '{s} · {c} · {t}',
+    askBad: 'There\'s a saved run, but it can\'t continue right now', keep: 'Keep it', discard: 'Discard',
+    keepHint: 'The code is not deleted. Choose Keep it and you\'ll be asked again next time.',
+    badSaved: { check: 'The saved run didn\'t pass the checks', locked: 'It uses a stage or character this save hasn\'t unlocked. Restoring the save it came from may let you continue' },
     resumed: 'Back where you left off!', slotUp: '🎒 Weapon slot +1! (up to {n})',
     bad: { check: 'That code doesn\'t look right. Please check it again', used: 'The run for this resume code is already over', locked: 'This code uses a stage or character you haven\'t unlocked yet' }
   }

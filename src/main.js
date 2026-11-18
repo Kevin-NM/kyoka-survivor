@@ -1795,13 +1795,27 @@ function discardRun(r) {
   }
   clearRun(); closeModal(); updateRec();
 }
-function savedRun() { let c = null; try { c = localStorage.getItem(RUN_KEY); } catch (e) { } if (!c) return null; const r = decodeRun(c); if (runProblem(r)) { clearRun(); return null; } return r; }
+// the saved run -> { r, why, code } or null. Only a finished run ('used') is dropped here; a run that is locked or fails a check
+// stays stored (restoring another save replaces what is unlocked, so it may become playable again) and the dialog says why
+function savedRun() {
+  let c = null; try { c = localStorage.getItem(RUN_KEY); } catch (e) { } if (!c) return null;
+  const r = decodeRun(c), why = runProblem(r);
+  if (why === 'used') { clearRun(); return null; }
+  return { r, why, code: c };
+}
 function openResumeAsk() {
-  const r = savedRun(); if (!r) return false; const rt = RT();
-  $('ra-title').textContent = rt.askTitle;
-  $('ra-info').innerHTML = `<img src="${portraitOf(r.char === 'ranger' ? 'kr0' : CHARS[r.char].spr)}" alt=""><span>${rt.info.replace('{s}', STAGES[r.stage][lang][0]).replace('{c}', CHARS[r.char][lang][0]).replace('{t}', fmtTime(r.t))}<br><small>${DIFF[r.diff].icon} ${DIFF[r.diff][lang][0]} · Lv ${r.lvl}</small></span>`;
-  $('ra-yes').textContent = rt.cont; $('ra-no').textContent = rt.fresh;
-  $('ra-yes').onclick = () => { Snd.init(); restoreRun(r); }; $('ra-no').onclick = () => { Snd.init(); discardRun(r); };
+  const s = savedRun(); if (!s) return false; const { r, why } = s, rt = RT();
+  $('ra-title').textContent = why ? rt.askBad : rt.askTitle;
+  $('ra-info').innerHTML = r ? `<img src="${portraitOf(r.char === 'ranger' ? 'kr0' : CHARS[r.char].spr)}" alt=""><span>${rt.info.replace('{s}', STAGES[r.stage][lang][0]).replace('{c}', CHARS[r.char][lang][0]).replace('{t}', fmtTime(r.t))}<br><small>${DIFF[r.diff].icon} ${DIFF[r.diff][lang][0]} · Lv ${r.lvl}</small></span>` : '';
+  show('ra-info', !!r); show('ra-why', !!why);
+  if (why) { // keep the code (asked again next time) or discard it; a run that can't be checked banks nothing
+    $('ra-why-t').textContent = rt.badSaved[why]; $('ra-why-h').textContent = rt.keepHint; $('ra-code').textContent = s.code;
+    $('ra-yes').textContent = rt.keep; $('ra-no').textContent = rt.discard;
+    $('ra-yes').onclick = () => closeModal(); $('ra-no').onclick = () => { if (r) markDone(r.id); clearRun(); closeModal(); updateRec(); };
+  } else {
+    $('ra-yes').textContent = rt.cont; $('ra-no').textContent = rt.fresh;
+    $('ra-yes').onclick = () => { Snd.init(); restoreRun(r); }; $('ra-no').onclick = () => { Snd.init(); discardRun(r); };
+  }
   openModal('resumeask'); return true;
 }
 function openRunCode() {
