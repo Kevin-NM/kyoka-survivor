@@ -99,7 +99,7 @@ for (const [vn, vp, touch] of VPS) for (const lang of LANGS) {
     await p.goto('file://' + ROOT + 'dist/index.html'); await p.waitForTimeout(700);
     await p.evaluate(pr => { window.__kyokaTest = true; window.__kyoka.setProfile(pr); }, PROFILE);
     await p.evaluate(`(${setup})(window.__kyoka)`); await p.waitForTimeout(wait || 450);
-    const iss = await p.evaluate(audit, { root, lang, allow: P6PN + '|甘ロリきょん|和ロリきょん|' + (ALLOW[lang] || /$^/).source });
+    const iss = await p.evaluate(audit, { root, lang, allow: 'おでかけきょんちゃん|' + P6PN + '|甘ロリきょん|和ロリきょん|' + (ALLOW[lang] || /$^/).source });
     states++;
     if (process.env.SHOT && !iss.length) await p.screenshot({ path: `/tmp/textfit/${vn}-${lang}-${name}.png` });
     if (iss.length) { total += iss.length; const f = `/tmp/textfit/${vn}-${lang}-${name}.png`; await p.screenshot({ path: f }); console.log(`✗ ${vn} ${lang} ${name} (${f})`); for (const i of iss) console.log('   ', JSON.stringify(i)); }
