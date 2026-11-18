@@ -127,9 +127,16 @@ const BOOST = { b_atk: { cap: Infinity, ic: 'suzuri' }, b_hp: { cap: Infinity, i
 const BOOST_IDS = Object.keys(BOOST);
 for (const k of BOOST_IDS) ICON[k] = BOOST[k].ic ? ICON[BOOST[k].ic] : dataURL('coin', 4);
 const MAX_W = 6, MAX_P = 5; // slots per run, like the classic survivors games
-// endless / loop: one more weapon slot at 5:00, 8:00 and 11:00 (up to 9)
-const wCap = (endless, t) => endless && t >= WIN_T ? MAX_W + Math.min(4, 1 + Math.floor((t - WIN_T) / 90)) : MAX_W; // endless: 7 / 8 / 9 / 10 slots at 5:00 / 6:30 / 8:00 / 9:30
-const wCapG = () => wCap(G.endless, G.t);
+// endless: 7 / 8 / 9 / 10 weapon slots at 5:00 / 6:30 / 8:00 / 9:30, then one more every 60 s until every weapon this run can get fits
+// (avail = how many weapons the run can obtain; 21 with everything open, so the last slot comes at 20:30)
+const wCap = (endless, t, avail) => {
+  if (!endless || t < WIN_T) return MAX_W;
+  const early = MAX_W + Math.min(4, 1 + Math.floor((t - WIN_T) / 90)); if (early < MAX_W + 4) return early;
+  return MAX_W + 4 + Math.max(0, Math.min(Math.floor((t - 570) / 60), (avail || 0) - MAX_W - 4));
+};
+// weapons the current run can obtain: every common weapon, plus stage weapons that are open here (or already held)
+const wAvail = () => WEAPONS.filter(wepOpen).length;
+const wCapG = () => wCap(G.endless, G.t, wAvail());
 // app icon (README / favicon): kyon's face on a pink tile with a strawberry and a seal. 64x64 pixel art; scale up with nearest-neighbour.
 function makeIcon() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
@@ -1373,6 +1380,12 @@ function layoutHud() {
   tp.style.top = narrow ? Math.round(cr.bottom + 6) + 'px' : '';
   const stop = narrow ? Math.min(cr.left, tp.getBoundingClientRect().left) : tp.getBoundingClientRect().left;
   weps.style.maxWidth = Math.max(60, Math.floor(stop - 8 - wl)) + 'px';
+  // phone portrait with a long icon list (endless can hold every weapon): squeezed beside the timer it turns into a tall column,
+  // so let the icons run up to the counters and tuck the timer under whichever is lower
+  if (narrow && weps.getBoundingClientRect().bottom > tp.getBoundingClientRect().bottom + 4) {
+    weps.style.maxWidth = Math.max(60, Math.floor(cr.left - 8 - wl)) + 'px';
+    tp.style.top = Math.round(Math.max(cr.bottom, weps.getBoundingClientRect().bottom) + 6) + 'px';
+  }
   const bottom = Math.max(...[$('player'), $('lvbadge'), tp, cn].map(e => e.getBoundingClientRect().bottom));
   bb.style.top = Math.round(bottom + 8) + 'px';
   // stage / warning banners drop below the boss bar while it shows, so they never cover its name
@@ -1384,6 +1397,7 @@ function refreshWeps() {
   const box = $('weps'); box.innerHTML = '';
   for (const id of WEAPONS.concat(PASSIVES)) { const l = lvOf(id); if (!l) continue; const evo = G.evo[id], d = document.createElement('div'); d.className = 'w' + (PASSIVES.includes(id) ? ' pas' : '') + (evo ? ' evo' : ''); d.innerHTML = `<img src="${ICON[evo ? 'evo_' + id : id]}" alt=""><b>${evo ? '★' : l}</b>`; box.appendChild(d); }
   for (const id of BOOST_IDS) { const n = G.boost[id]; if (!n || id === 'b_coin') continue; const d = document.createElement('div'); d.className = 'w bst'; d.title = T().items[id][0]; d.innerHTML = `<img src="${ICON[id]}" alt=""><b>×${n}</b>`; box.appendChild(d); }
+  box.classList.toggle('many', box.children.length > 16); // compact icons once the list gets long
   const [nW, nP] = slotsUsed(); if (nW >= wCapG() || nP >= MAX_P) { const f = document.createElement('span'); f.className = 'sfull'; f.id = 'slotsfull'; f.textContent = PT().slotsFull; box.appendChild(f); }
   layoutHud();
 }
@@ -1747,7 +1761,7 @@ function runProblem(r) {
   if (r.endless && r.stage !== 'road' && (!r.cleared || !endlessOpen(profile))) return 'locked';
   if (!r.endless && r.t >= WIN_T) return 'check';
   for (const id in r.weapons) { const ws = W_STAGE[id]; if (ws && !(r.stage === ws || r.stage === 'road' || stageCleared(profile, ws) || (START_W[r.char] || []).includes(id))) return 'locked'; }
-  if (!r.boosted && (Object.keys(r.weapons).length > wCap(r.endless, r.t) || Object.keys(r.passives).length > MAX_P)) return 'check';
+  if (!r.boosted && (Object.keys(r.weapons).length > wCap(r.endless, r.t, WEAPONS.filter(id => { const ws = W_STAGE[id]; return !ws || r.weapons[id] || r.stage === ws || r.stage === 'road' || stageCleared(profile, ws) || (START_W[r.char] || []).includes(id); }).length) || Object.keys(r.passives).length > MAX_P)) return 'check';
   for (const id in r.boost) if (r.boost[id] > BOOST[id].cap) return 'check';
   if (r.kills > r.t * 40 + 100 || r.picked > r.t * 4 + 300 || r.bossKills > 1 + r.t / 60) return 'check';
   if (r.banked > runCoins({ picked: r.picked, time: r.t, kills: r.kills, won: r.cleared, bosses: r.bossKills, diff: r.diff }, profile)) return 'check';

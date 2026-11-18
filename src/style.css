@@ -534,6 +534,17 @@ body:has(#end:not(.hide)) #toast,body:has(#chest:not(.hide)) #toast{top:10px;bot
 #hud.narrow #weps .w.bst{width:21px;height:21px}
 #hud.narrow #weps .w.bst img{max-width:15px;max-height:15px}
 #hud.narrow #weps b{font-size:9px;min-width:12px;height:12px;line-height:10px;right:-3px;bottom:-4px}
+/* long lists (endless can hold every weapon): smaller icons so the block stays a few rows tall */
+#weps.many{gap:3px 4px}
+#weps.many .w{width:22px;height:22px;border-radius:5px;border-width:1.5px}
+#weps.many img{max-width:16px;max-height:16px}
+#weps.many .w.bst{width:20px;height:20px}
+#weps.many .w.bst img{max-width:14px;max-height:14px}
+#weps.many b{font-size:8px;min-width:11px;height:11px;line-height:9px;right:-3px;bottom:-4px;border-width:1px}
+#hud.narrow #weps.many{gap:3px}
+#hud.narrow #weps.many .w{width:20px;height:20px}
+#hud.narrow #weps.many img{max-width:15px;max-height:15px}
+#hud.narrow #weps.many .w.bst{width:18px;height:18px}
 #hud.narrow #hpwrap{width:min(48vw,200px)}
 
 /* level-up cards: a light number badge on the card corner (off the art), name + stars kept together */
