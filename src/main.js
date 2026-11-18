@@ -640,6 +640,7 @@ function spBlast() {
     if (e.boss) { const d = Math.max(1, e.maxHp * bossFrac); e.hp -= d; e.flash = 0.2; addNum(e.x, e.y, Math.round(d), true); if (e.hp <= 0) killEnemy(e); }
     else { const dx = e.x - p.x, dy = e.y - p.y, dd = Math.hypot(dx, dy) || 1; e.hp = Math.min(e.hp, 1); hurtEnemy(e, 1e6, dx / dd * 200, dy / dd * 200); }
   }
+  G.nums = G.nums.filter(n => n.v < 1e5); // the finisher pops foes; no "1000000" numbers
   G.ebul = G.ebul.filter(b => Math.abs(b.x - p.x) > hw || Math.abs(b.y - p.y) > hh);
   for (let i = 0; i < 5; i++) burst(p.x + (i - 2) * 46, p.y - 34, [RANGER_HEX[i], 0xffffff, 0xffd94a], 22, 180, 1.8, 24);
 }
@@ -1817,7 +1818,7 @@ function frame(now) {
   let dt = Math.max(0, (now - last) / 1000); last = now; if (dt > 1 / 20) dt = 1 / 20;
   gTime += dt;
   if (state === 'title') titleT += dt;
-  if (state === 'play') { if (G.cine) cineTick(dt); else update(dt); }
+  if (state === 'play') { if (G.cine) { if (!window.__kyokaHold) cineTick(dt); } else update(dt); } // __kyokaHold: tests freeze a cut-scene frame
   else if (G && (state === 'levelup' || state === 'paused' || state === 'over' || state === 'win')) { /* frozen */ }
   if (G && state !== 'title') hud();
   const r0 = performance.now(); render(dt); if (G && G.cine && state !== 'title') drawCineNow(); const r1 = performance.now();

@@ -73,18 +73,33 @@ export function drawCine(ctx, W, H, c, o) {
   // 3. the five-colour explosion behind the group
   if (t >= CINE.BOOM && t < CINE.FADE) {
     const out = 1 - k01((t - CINE.FIN) / 0.6);
-    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#fff2c0'; ctx.globalAlpha = 0.8 * (1 - k01((t - CINE.BOOM) / 0.5));
-    ctx.beginPath(); ctx.arc(cx, gy - rh * 0.5, rh * (0.6 + 2.4 * easeOut(k01((t - CINE.BOOM) / 0.5))), 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffd890'; ctx.globalAlpha = 0.5 * (1 - k01((t - CINE.BOOM) / 0.25));
+    ctx.beginPath(); ctx.arc(cx, gy - rh * 0.5, rh * (0.4 + 1.4 * easeOut(k01((t - CINE.BOOM) / 0.25))), 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
     for (let j = 0; j < 5; j++) {
       const s = L.slot(j), P = RANGER[CINE_ORDER[j]];
-      for (let m = 0; m < 7; m++) {
-        const p = easeOut(k01((t - CINE.BOOM) / 0.75 - m * 0.05)); if (p <= 0) continue;
-        const r = rh * (0.22 + 0.42 * p) * (1 - m * 0.07), x = s.x + Math.sin(m * 1.7 + j * 2.3) * rh * 0.3 * p, y = s.y - rh * 0.35 - p * rh * (0.5 + m * 0.3);
+      for (let m = 0; m < 9; m++) { // a column of coloured smoke balls shooting up behind each ranger
+        const p = easeOut(k01((t - CINE.BOOM) / 0.45 - m * 0.04)); if (p <= 0) continue;
+        const r = rh * (0.3 + 0.5 * p) * (1 - m * 0.06), x = s.x + Math.sin(m * 1.7 + j * 2.3) * rh * 0.28 * p, y = s.y - rh * 0.3 - p * rh * (0.45 + m * 0.36);
         ctx.globalAlpha = out * (0.95 - p * 0.35); ctx.fillStyle = css(P[m % 2 ? 0 : 1]); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = css(P[2]); ctx.beginPath(); ctx.arc(x - r * 0.2, y - r * 0.2, r * 0.55, 0, Math.PI * 2); ctx.fill();
       }
     }
     ctx.globalAlpha = 1;
+  }
+  // light gathering: five coloured rings closing in on the middle while the band slides through
+  if (t < CINE.E0 + 0.1) {
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = Math.max(3, rh * 0.05);
+    for (let i = 0; i < 5; i++) { const k = ((t * 1.9 + i / 5) % 1), r = rh * (0.2 + 2.2 * (1 - k)); ctx.globalAlpha = 0.7 * k; ctx.strokeStyle = css(RANGER[CINE_ORDER[i]][2]); ctx.beginPath(); ctx.arc(cx, gy - rh * 0.5, r, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+  // transformation cut-in: a slanted band with five-colour stripes sweeping through and the title, light gathering in the middle
+  if (t < CINE.E0 + 0.1) {
+    const kin = easeOut(k01(t / 0.22)), kout = k01((t - CINE.E0 + 0.05) / 0.15), bh = Math.min(H * 0.17, W * 0.3), by = H * 0.42, x0 = (1 - kin) * W * 1.2 - kout * W * 1.2;
+    ctx.save(); ctx.translate(x0, 0); ctx.beginPath(); ctx.moveTo(-40, by + bh * 0.25); ctx.lineTo(W + 40, by - bh * 0.25); ctx.lineTo(W + 40, by + bh * 0.75); ctx.lineTo(-40, by + bh * 1.25); ctx.closePath();
+    ctx.fillStyle = '#140a18'; ctx.fill(); ctx.clip();
+    for (let i = 0; i < 10; i++) { const sx = ((i / 10 + t * 1.8) % 1) * (W + bh * 2) - bh; ctx.fillStyle = css(RANGER[CINE_ORDER[i % 5]][1]); ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.moveTo(sx, by + bh * 1.3); ctx.lineTo(sx + bh * 0.22, by + bh * 1.3); ctx.lineTo(sx + bh * 0.62, by - bh * 0.3); ctx.lineTo(sx + bh * 0.4, by - bh * 0.3); ctx.fill(); }
+    ctx.globalAlpha = 0.55; ctx.fillStyle = '#140a18'; ctx.fillRect(-40, by - bh * 0.3, W + 80, bh * 1.6); ctx.globalAlpha = 1;
+    text(ctx, o.title, W / 2, by + bh * 0.5, Math.min(bh * 0.34, W * 0.075), '#fff6d0', '#140a18'); ctx.restore();
   }
   // 4. light pillars for the entries
   for (let j = 0; j < 5; j++) {
@@ -145,7 +160,7 @@ export function drawCine(ctx, W, H, c, o) {
     const st = barH * 0.08;
     ctx.save(); ctx.translate(-W * (1 - kb), 0); ctx.fillStyle = '#140a18'; ctx.fillRect(-20, -20, W + 40, barH + 20);
     for (let i = 0; i < 5; i++) { ctx.fillStyle = css(RANGER[CINE_ORDER[i]][1]); ctx.fillRect(W * i / 5 - 20 * (i === 0), barH, W / 5 + 20 * (i === 0 || i === 4), st); }
-    if (t < CINE.POSE) text(ctx, o.title, W / 2, barH * 0.55, Math.min(barH * 0.42, W * 0.06), '#fff6d0', '#140a18');
+    if (t >= CINE.E0 && t < CINE.POSE) text(ctx, o.title, W / 2, barH * 0.55, Math.min(barH * 0.42, W * 0.06), '#fff6d0', '#140a18');
     ctx.restore();
     ctx.save(); ctx.translate(W * (1 - kb), 0); ctx.fillStyle = '#140a18'; ctx.fillRect(-20, H - barH, W + 40, barH + 20);
     for (let i = 0; i < 5; i++) { ctx.fillStyle = css(RANGER[CINE_ORDER[4 - i]][1]); ctx.fillRect(W * i / 5 - 20 * (i === 0), H - barH - st, W / 5 + 20 * (i === 0 || i === 4), st); }
