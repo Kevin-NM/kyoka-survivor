@@ -32,6 +32,8 @@ const SCREENS = [
   ['pauseRun', '#pause', k => { k.select('kyon', 'apple'); k.start(); k.pause(); }],
   ['runcode', '#runcode', k => { k.select('kyon', 'apple'); k.start(); k.G.t = 123; k.pause(); k.openRunCode(); }],
   ['resumeAsk', '#resumeask', k => { k.select('dj', 'halloween'); k.start(); k.G.t = 95; k.pause(); document.getElementById('quitbtn'); k.openResumeAsk(); }],
+  ['resumeLocked', '#resumeask', k => { k.select('dj', 'halloween'); k.start(); k.G.t = 95; k.pause(); k.setProfile({}); k.openResumeAsk(); }], // saved run kept, reason shown
+  ['resumeBad', '#resumeask', k => { localStorage.setItem('kyoka-run', 'ABCD-EFGH-JKMN-PQRS-TUVW-XYZ2'); k.openResumeAsk(); }],
   ['hud', '#hud', k => { k.select('kyon', 'apple'); k.start(); k.setAuto(true); k.spawn(30); ['seal', 'lariat', 'penlight', 'ham', 'guitar', 'shoes', 'wasabi'].forEach(x => k.give(x)); }],
   ['pause', '#pause', k => { k.select('odekake', 'night'); k.start(); k.give('fan'); k.pause(); }],
   ['levelup', '#levelup', k => { k.select('kyon', 'apple'); k.start(); k.give('lariat'); k.give('lariat'); k.give('lariat'); k.give('gakufu'); k.levelUp(); }],

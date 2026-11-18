@@ -578,3 +578,5 @@ body:has(#end:not(.hide)) #toast,body:has(#chest:not(.hide)) #toast{top:10px;bot
 .rawhy p{margin:0 0 4px;font-weight:700}
 .rawhy small{display:block;opacity:.8;font-size:12px}
 .rawhy code{display:block;margin-top:8px;font-family:"DejaVu Sans Mono",Menlo,Consolas,monospace;font-size:12px;word-break:break-all;user-select:all;-webkit-user-select:all;background:rgba(255,244,230,.12);border-radius:8px;padding:6px 8px}
+@media (max-height:480px){.rawhy{margin:0 auto 6px;line-height:1.35}.rawhy small{display:none}.rawhy code{margin-top:4px;padding:3px 6px;font-size:11px}}
+@media (max-height:480px){.raframe{gap:6px}.raframe h2{font-size:clamp(18px,4.4vh,24px);margin:0}.raframe .rainfo{padding:6px 12px}.raframe .rainfo img{width:44px;height:44px}.raframe .btn.big{padding:8px 20px;font-size:20px}.raframe .btn.alt{padding:6px 16px}}
