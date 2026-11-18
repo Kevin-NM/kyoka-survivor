@@ -14,7 +14,7 @@ export const RUN_T = {
     askBad: 'つづきが いまは あそべないよ', keep: 'のこしておく', discard: 'すてる',
     keepHint: 'コードは けさずに のこしておくよ。「のこしておく」なら つぎに ひらいたとき また きくね。',
     badSaved: { check: 'セーブされた データが チェックに とおらなかったよ', locked: 'いまの セーブでは まだ ひらいていない ステージか キャラだよ。もとの じゅもんに もどすと つづけられるかも' },
-    resumed: 'つづきから スタート！', slotUp: '🎒 ぶきスロット +1！（{n}こまで）',
+    resumed: 'つづきから スタート！', slotUp: '🎒 ぶきスロット +1！（{n}こまで）', overUp: 'MAXの その先へ！ こうげきと はんいが すこし アップ',
     bad: { check: 'コードが ちがうみたい。もういちど たしかめてね', used: 'この つづきコードの ゲームは もう おわっているよ', locked: 'まだ ひらいていない ステージか キャラの コードだよ' }
   },
   zh: {
@@ -26,7 +26,7 @@ export const RUN_T = {
     askBad: '上次的進度現在沒辦法繼續', keep: '先保留', discard: '捨棄',
     keepHint: '這組碼不會被刪掉。選「先保留」的話，下次打開時會再問你。',
     badSaved: { check: '存下來的資料沒有通過檢查', locked: '這場用到目前存檔還沒解鎖的關卡或角色。換回原本的咒語後也許就能繼續' },
-    resumed: '從上次的進度開始！', slotUp: '🎒 武器欄位 +1！（最多 {n} 個）',
+    resumed: '從上次的進度開始！', slotUp: '🎒 武器欄位 +1！（最多 {n} 個）', overUp: '突破滿級！攻擊和範圍小幅提升',
     bad: { check: '這組碼好像不對，請再確認一次', used: '這組續玩碼的那一場已經結束了', locked: '這組碼用到了還沒解鎖的關卡或角色' }
   },
   en: {
@@ -38,7 +38,7 @@ export const RUN_T = {
     askBad: 'Your saved run can\'t continue right now', keep: 'Keep it', discard: 'Discard',
     keepHint: 'The code is not deleted. Choose Keep it and you\'ll be asked again next time.',
     badSaved: { check: 'The saved run didn\'t pass the checks', locked: 'It uses a stage or character this save hasn\'t unlocked. Restoring the save it came from may let you continue' },
-    resumed: 'Back where you left off!', slotUp: '🎒 Weapon slot +1! (up to {n})',
+    resumed: 'Back where you left off!', slotUp: '🎒 Weapon slot +1! (up to {n})', overUp: 'Past MAX! A little more damage and area',
     bad: { check: 'That code doesn\'t look right. Please check it again', used: 'The run for this resume code is already over', locked: 'This code uses a stage or character you haven\'t unlocked yet' }
   }
 };

@@ -14,7 +14,7 @@ export const STAGES6 = {
   clinic: { ja: ['千客万来クリニック', 'よるの びょういんと バンドの ステージ'], zh: ['千客万来診所', '夜晚的醫院和樂團舞台'], en: ['千客万来 Clinic', 'A night hospital with a band stage'] },
   okinawa: { ja: ['きょうみお沖縄ミッション', 'うみと ジャングル。ミッションを クリアしよう'], zh: ['きょうみお沖繩任務', '大海和叢林，完成任務吧'], en: ['きょうみお Okinawa Mission', 'Sea and jungle. Clear the missions'] },
   hq: { ja: ['亨香組 本部', 'ふすまと ちょうちんの おやしき。鉄の掟を まもれ'], zh: ['亨香組 本部', '紙拉門與燈籠的宅邸，遵守鉄の掟'], en: ['亨香組 HQ', 'A mansion of sliding doors and lanterns. Keep the 鉄の掟'] },
-  road: { ja: ['20周年への道 ∞', '5分ごとに 時代が かわる むげんの アンコール'], zh: ['通往20週年之路 ∞', '每 5 分鐘換一個時代的無限安可'], en: ['Road to the 20th ∞', 'An endless encore. The era changes every 5 minutes'] }
+  road: { ja: ['20周年への道 ∞', '3分ごとに 時代が かわる むげんの アンコール'], zh: ['通往20週年之路 ∞', '每 3 分鐘換一個時代的無限安可'], en: ['Road to the 20th ∞', 'An endless encore. The era changes every 3 minutes'] }
 };
 export const CHARS6 = {
   dj: { spr: 'dj', need: 'clearHalloween', ja: ['DJきょん', 'うさみみ DJ。ターンテーブルで スタート。こうげきが はやいけど HPは ひかえめ'], zh: ['DJきょん', '兔耳 DJ，從轉盤開始，攻擊快但 HP 偏少'], en: ['DJ Kyon', 'Bunny-eared DJ. Starts with the Turntable. Fast attacks, low HP'] },

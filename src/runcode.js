@@ -10,7 +10,9 @@ export const RC_PASSIVES = ['pannier', 'shoes', 'ribbon', 'gobelt', 'suzuri', 'm
 export const RC_BOOSTS = ['b_atk', 'b_hp', 'b_spd', 'b_mag', 'b_cd', 'b_coin', 'b_area', 'b_regen']; // v1/v2 codes know the first 6
 const DIFFS = ['easy', 'normal', 'hard', 'geki'];
 const SAVE_LENS = new Set([12, 24, 44, 52, 60, 84, 92, 104]);
-const VER = 3; // v2 appended the special-move gauge, v3 the area / regen boosts (older codes still restore)
+const VER = 4; // v2 appended the special-move gauge, v3 the area / regen boosts, v4 endless levels past MAX (older codes still restore)
+// the ver field is 2 bits: v1..v3 are stored as 1..3, v4 as 0 (0 was never written before)
+const VER_FIELD = v => v & 3, verOf = f => f || 4;
 // [key, bits] for the fixed part
 const FIXED = [['ver', 2], ['id', 16], ['stage', 5], ['char', 4], ['diff', 2], ['endless', 1], ['cleared', 1], ['boosted', 1], ['bossAlive', 1],
   ['t', 14], ['lvl', 7], ['xp', 5], ['hp', 6], ['pending', 3], ['kills', 18], ['picked', 14], ['banked', 14], ['bossKills', 6], ['nextBoss', 14], ['revives', 2],
@@ -27,7 +29,7 @@ const bitLen = v => v.toString(2).length;
 //        hamN, misN, misOk, weapons {id: lv}, evo {id: true}, passives {id: lv}, boost {id: n}, sp (0..1, the 必殺技 gauge) }
 export function encodeRun(r) {
   const out = []; const put = (v, b) => out.push([BigInt(lim(v, b)), b]);
-  const vals = Object.assign({}, r, { ver: VER, stage: RC_STAGES.indexOf(r.stage), char: RC_CHARS.indexOf(r.char), diff: DIFFS.indexOf(r.diff),
+  const vals = Object.assign({}, r, { ver: VER_FIELD(VER), stage: RC_STAGES.indexOf(r.stage), char: RC_CHARS.indexOf(r.char), diff: DIFFS.indexOf(r.diff),
     endless: r.endless ? 1 : 0, cleared: r.cleared ? 1 : 0, boosted: r.boosted ? 1 : 0, bossAlive: r.bossAlive ? 1 : 0,
     xp: Math.round(Math.max(0, Math.min(1, r.xp || 0)) * 31), hp: Math.max(1, Math.round(Math.max(0, Math.min(1, r.hp || 0)) * 63)) });
   for (const [k, b] of FIXED) put(vals[k], b);
@@ -38,6 +40,8 @@ export function encodeRun(r) {
   for (const id of RC_BOOSTS) put(r.boost[id] ? 1 : 0, 1);
   for (const id of RC_BOOSTS) if (r.boost[id]) put(r.boost[id], 8);
   put(Math.round(Math.max(0, Math.min(1, r.sp || 0)) * 100), 7);
+  const ov = r.over || {}; // v4: for each held weapon, then passive: 1 flag bit, then 8 bits of levels past MAX
+  for (const id of RC_WEAPONS.filter(id => r.weapons[id]).concat(RC_PASSIVES.filter(id => r.passives[id]))) { put(ov[id] > 0 ? 1 : 0, 1); if (ov[id] > 0) put(ov[id], 8); }
   let v = 1n, n = 0; for (const [x, b] of out) { v = (v << BigInt(b)) | x; n += b; }
   v ^= MSRC & ((1n << BigInt(n)) - 1n);
   const full = (v << 16n) | BigInt(crc16(v, n + 1));
@@ -47,7 +51,7 @@ export function encodeRun(r) {
   return s.match(/.{4}/g).join('-');
 }
 // read-only description of the layout, for tools/gen-save-docs.mjs
-export const RUN_LAYOUT = { ver: VER, fixed: FIXED, saveLens: [...SAVE_LENS], spBits: 7, boostBits: 8, crcBits: 16, crcPoly: 0x1021 };
+export const RUN_LAYOUT = { ver: VER, overBits: 8, fixed: FIXED, saveLens: [...SAVE_LENS], spBits: 7, boostBits: 8, crcBits: 16, crcPoly: 0x1021 };
 export const isRunLen = n => n >= 20 && n % 4 === 0 && !SAVE_LENS.has(n) && n <= 120;
 // -> run object or null
 export function decodeRun(str) {
@@ -60,7 +64,7 @@ export function decodeRun(str) {
   let pos = n; const get = b => { if (pos < b) throw 0; pos -= b; return Number((v >> BigInt(pos)) & ((1n << BigInt(b)) - 1n)); };
   try {
     const r = {}; for (const [k, b] of FIXED) r[k] = get(b);
-    if (r.ver < 1 || r.ver > VER || r.stage >= RC_STAGES.length || r.char >= RC_CHARS.length) return null;
+    r.ver = verOf(r.ver); if (r.ver > VER || r.stage >= RC_STAGES.length || r.char >= RC_CHARS.length) return null;
     r.stage = RC_STAGES[r.stage]; r.char = RC_CHARS[r.char]; r.diff = DIFFS[r.diff];
     for (const k of ['endless', 'cleared', 'boosted', 'bossAlive']) r[k] = !!r[k];
     r.xp /= 31; r.hp /= 63;
@@ -69,6 +73,7 @@ export function decodeRun(str) {
     const hasP = RC_PASSIVES.filter(() => get(1)); for (const id of hasP) { const l = get(2); if (!l) return null; r.passives[id] = l; }
     const hasB = RC_BOOSTS.slice(0, r.ver >= 3 ? RC_BOOSTS.length : 6).filter(() => get(1)); for (const id of hasB) { const l = get(8); if (!l) return null; r.boost[id] = l; }
     r.sp = 0; if (r.ver >= 2) { const g = get(7); if (g > 100) return null; r.sp = g / 100; }
+    r.over = {}; if (r.ver >= 4) for (const id of hasW.concat(hasP)) if (get(1)) { const o = get(8); if (!o) return null; r.over[id] = o; }
     if (pos !== 0) return null;
     return r;
   } catch (e) { return null; }

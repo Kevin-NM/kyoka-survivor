@@ -7,9 +7,14 @@ let html = readFileSync('src/index.html', 'utf8');
 // favicon from assets/ (made by test/make-icon.mjs), inlined as data URIs so the game stays one offline file
 const uri = f => 'data:image/png;base64,' + readFileSync(f).toString('base64');
 if (existsSync('assets/icon-64.png')) html = html.replace('</title>', () => `</title>\n<link rel="icon" type="image/png" sizes="64x64" href="${uri('assets/icon-64.png')}">\n<link rel="icon" type="image/png" sizes="32x32" href="${uri('assets/icon-32.png')}">\n<link rel="apple-touch-icon" href="${uri('assets/icon-128.png')}">`);
+// version (package.json) and build date (Asia/Taipei), shown small in a title-screen corner
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+const day = process.env.BUILD_DATE || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+const BUILD = `v${pkg.version} · ${day}`;
+html = html.replace('__BUILD__', () => BUILD);
 html = html.replace('/*CSS*/', () => readFileSync('src/style.css', 'utf8')).replace('/*JS*/', () => js);
 mkdirSync('dist', { recursive: true }); writeFileSync('dist/index.html', html);
 // the same full game at the repo root, so https://kevin-nm.github.io/kyoka-survivor/ opens it directly (/dist/ keeps working;
 // saves live in localStorage under fixed 'kyoka-*' keys, shared by the whole origin whatever the path)
 writeFileSync('index.html', html);
-console.log('dist/index.html + index.html', (html.length / 1024).toFixed(0) + ' KB (js ' + (js.length / 1024).toFixed(0) + ' KB)');
+console.log(BUILD, 'dist/index.html + index.html', (html.length / 1024).toFixed(0) + ' KB (js ' + (js.length / 1024).toFixed(0) + ' KB)');

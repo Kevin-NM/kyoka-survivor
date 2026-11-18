@@ -593,3 +593,9 @@ body:has(#end:not(.hide)) #toast,body:has(#chest:not(.hide)) #toast{top:10px;bot
 @media (max-height:480px){.raframe{gap:6px}.raframe h2{font-size:clamp(18px,4.4vh,24px);margin:0}.raframe .rainfo{padding:6px 12px}.raframe .rainfo img{width:44px;height:44px}.raframe .btn.big{padding:8px 20px;font-size:20px}.raframe .btn.alt{padding:6px 16px}}
 /* small phones: the banner's soft side padding must not push it past the screen edge */
 @media (max-width:420px){#banner span{padding:8px 22px;max-width:calc(100vw - 8px);box-sizing:border-box;text-align:center}}
+/* endless levels past MAX: "Lv 15 → 16" on the card, a wider badge on the HUD icon */
+.card .pips .lvn{font-size:12px;font-weight:900;color:#fff3d6;background:linear-gradient(90deg,#b8862a,#e8b84a);border:1.5px solid #fff3d6;border-radius:999px;padding:1px 8px;white-space:nowrap;line-height:1.3}
+#weps b.ov{min-width:auto;padding:0 2px;white-space:nowrap;background:linear-gradient(90deg,#ffd94a,#ffb0d8)}
+#weps.many b.ov{padding:0 1px}
+/* version · build date, small in the title screen's bottom-right corner */
+#ver{position:fixed;right:8px;bottom:6px;font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--cream);opacity:.55;pointer-events:none;user-select:none;text-shadow:0 1px 0 #000}

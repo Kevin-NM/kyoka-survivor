@@ -148,12 +148,12 @@ Stage times are stored in 5 s steps and kills in steps of 20 (a value above 0 ne
 4. The length L is the smallest multiple of 4 whose `31^L` can hold the number, skipping the save-code lengths (SAVE_LENS).
 5. Multiply by a constant modulo `31^L`, write in base 31, and group by 4.
 
-`ver` has only 2 bits, so the current 3 is the last number that fits. The next format change needs a different marker.
+`ver` has only 2 bits. v1–v3 store 1–3; v4 stores 0, which was never written before. All four values are now used, so the next format change needs a different marker.
 
 <!-- gen:run -->
 | # | Field | Bits | Meaning |
 | --- | --- | --- | --- |
-| 1 | `ver` | 2 | version number (now 3) |
+| 1 | `ver` | 2 | version number (now 4; 2 bits, so v4 is stored as 0) |
 | 2 | `id` | 16 | run id (1–65535) |
 | 3 | `stage` | 5 | stage index |
 | 4 | `char` | 4 | character index |
@@ -188,6 +188,7 @@ Stage times are stored in 5 s steps and kills in steps of 20 (a value above 0 ne
 | boost flags (v1/v2: the first 6) | 8 × 1 |
 | count of each boost held | 8 × held |
 | special gauge 0–100 (v2+) | 7 |
+| levels past MAX for each weapon, then item, held: 1 flag bit, then the levels if set (v4+, endless) | 1 (+ 8) × held |
 
 - `RC_STAGES`: 0=`apple` 1=`berry` 2=`race` 3=`cage` 4=`zoo` 5=`snow` 6=`night` 7=`chapel` 8=`china` 9=`halloween` 10=`runway` 11=`ring` 12=`dawn` 13=`cherry` 14=`station` 15=`clinic` 16=`okinawa` 17=`hq` 18=`road`
 - `RC_CHARS`: 0=`kyon` 1=`odekake` 2=`ranger` 3=`dress` 4=`goth` 5=`dj` 6=`amaroli` 7=`waroli` 8=`machi` 9=`ekicho` 10=`redgt` 11=`kumicho` 12=`sapphire`
@@ -212,8 +213,9 @@ Checked top to bottom; the first failing check gives the reason.
 | 7 | A stage-only weapon held outside its stage, `road`, a cleared stage, or the character's starting weapons | `locked` |
 | 8 | (Except runs started with kyonkyon) more weapons than slots, or more than 5 items. There are 6 slots; endless adds one at 5:00, 6:30, 8:00 and 9:30 (10), then one a minute up to the number of weapons the run can get (21 with everything open) | `check` |
 | 9 | A boost count above its cap (`b_spd`, `b_mag`, `b_regen` 20; `b_cd`, `b_area` 25; the others have no cap) | `check` |
-| 10 | Kills > 40 × seconds + 100, coins picked > 4 × seconds + 300, or bosses > 1 + seconds ÷ 60 | `check` |
-| 11 | More coins already banked than the run could earn (computed with this save's coin upgrades) | `check` |
+| 10 | Levels past MAX outside endless, or on a weapon / item that isn't at MAX | `check` |
+| 11 | Kills > 40 × seconds + 100, coins picked > 4 × seconds + 300, or bosses > 1 + seconds ÷ 60 | `check` |
+| 12 | More coins already banked than the run could earn (computed with this save's coin upgrades) | `check` |
 
 - **Typed on the title screen**: the reason is shown and the run doesn't start.
 - **A run left in the browser when the game opens**: only `used` (a finished run) is removed silently. `check` and `locked` runs are kept. The continue dialog shows the reason and the code, with **Keep it** or **Discard**. Discarding banks no coins.

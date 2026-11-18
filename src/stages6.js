@@ -68,7 +68,7 @@ export const SDEF6 = {
   hq: { g: 17, song: 'hq', boss: 'scroll', summon: 'kobun', waves: ['kobun', 'eihire', 'uragiri'], mix: mix('kobun', 'eihire', 'uragiri', 'daruma') },
   road: { g: 18, song: 'encore', boss: 'woofer', summon: 'pumpk', waves: ['onpu', 'pumpk', 'kobun'], mix: t => ERAS[0].mix(t), loop: true }
 };
-// encore loop eras (5 minutes each): ground, song, foes (a "setlist" of earlier stages) and the boss pool
+// encore loop eras (ERA_T = 3 minutes each, see main.js): ground, song, foes (a "setlist" of earlier stages) and the boss pool
 export const ERAS = [
   { g: 18, song: 'encore', mix: mix('cater', 'crow', 'stink', 'kuma'), boss: ['boss', 'mokuba'] },
   { g: 19, song: 'cage', mix: mix('dust', 'bat', 'paper', 'mole'), boss: ['wheel', 'bmole'] },

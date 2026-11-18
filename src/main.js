@@ -261,7 +261,7 @@ function newGame() {
     penA: 0, horseId: 1, cam: { x: 0, y: 0 }, sealLv: [2, 4, 7], henshin: 0, lvFx: 0,
     char: ch, spr: ch === 'ranger' ? 'kr0' : CHARS[ch].spr, rc: 0, sp: 0, spPend: 0, spT: 0, spN: 0, cys: [], ate: {}, speedT: 0, glitT: 2, fireT: 0, fireTick: 0,
     sws: [], lobs: [], hazards: [], ebul: [], nextPick: 35, got: {}, bites: 0, chests: 0, drumN: 0, applA: 0, swId: 1,
-    hams: [], gusts: [], zaps: [], penB: 0, boost: {}, threat: 0, eliteWaveT: 0, diff: sel.diff, di, df, evoN: 0, shield: 0,
+    hams: [], gusts: [], zaps: [], penB: 0, boost: {}, over: {}, overDm: 1, overArea: 1, threat: 0, eliteWaveT: 0, diff: sel.diff, di, df, evoN: 0, shield: 0,
     prev: Object.assign({ t: 0, k: 0 }, ((profile.st[sid] || {}).by || [])[di]), unl0: unlockSet(profile), lucky: up.lucky || 0, hanpen: up.hanpen || 0, giant: hasCheat(profile, 'hanpen'),
     picked: 0, coinsBanked: 0, repaid: 0, gained: 0, clearCounted: false, cleared: false, endless: false, paidOff: false, newAch: [],
     lastHurt: 0, safe: 0, revives: up.michi || 0, dmgMul: 1 + 0.03 * (up.shodo || 0), cdMul: 1 - 0.04 * (up.drumbeat || 0), domino: 0.03 * (up.domino || 0), dm: 1, cdm: 1, area: 1,
@@ -750,7 +750,8 @@ function chestRewards() {
     const ev = evoReady(); if (ev) { applyEvo(ev); out.push('evo_' + ev); continue; }
     const own = WEAPONS.filter(id => G.weapons[id] && G.weapons[id] < MAXLV[id]), ownP = PASSIVES.filter(id => G.passives[id] && G.passives[id] < MAXLV[id]);
     const [nW, nP] = slotsUsed(), fresh = WEAPONS.filter(id => !lvOf(id) && nW < wCapG() && wepOpen(id)).concat(PASSIVES.filter(id => !lvOf(id) && nP < MAX_P));
-    const pool = own.length ? own : ownP.length ? ownP : fresh;
+    const more = G.endless ? WEAPONS.concat(PASSIVES).filter(canOver) : [];
+    const pool = own.length ? own : ownP.length ? ownP : fresh.length ? fresh : more;
     if (pool.length) { const id = pool[(Math.random() * pool.length) | 0]; grantItem(id); out.push(id); }
     else if (k === 0 || Math.random() < 0.5) { G.picked += 30; out.push('coinBag'); } else { heal(G.p.maxHp); out.push('heal'); }
   }
@@ -786,6 +787,22 @@ function closeChest() {
 }
 // ---------- level up ----------
 const lvOf = id => G.weapons[id] || G.passives[id] || 0;
+// endless: levels past MAX ("over" levels). The stat tables stop at MAX, so each over level adds a small, shrinking
+// damage / area bonus instead (no extra projectiles, so phones stay smooth). pannier / shoes / ribbon also add a bit of their own stat.
+const lvShow = id => lvOf(id) + ((G.over && G.over[id]) || 0);
+const canOver = id => G.endless && lvOf(id) > 0 && lvOf(id) >= MAXLV[id];
+const overDim = k => 1 / (1 + 0.15 * k); // the k-th over level of one item counts this much
+function overStats() {
+  let dm = 1, ar = 1;
+  for (const id in G.over) for (let k = 0; k < G.over[id]; k++) { dm *= 1 + 0.04 * overDim(k); ar *= 1 + 0.012 * overDim(k); }
+  G.overDm = dm; G.overArea = Math.min(1.5, ar);
+}
+function overOwn(id, k) { // a passive's own share of its k-th over level
+  const p = G.p, d = overDim(k);
+  if (id === 'pannier') { const v = Math.round(8 * d) || 1; p.maxHp += v; return v; }
+  if (id === 'shoes') p.speed *= 1 + 0.02 * d; else if (id === 'ribbon') p.magnet *= 1 + 0.05 * d;
+  return 0;
+}
 function evoReady() { for (const id of WEAPONS) if (!G.evo[id] && (G.weapons[id] || 0) >= MAXLV[id]) return id; return null; }
 function makeOffers() {
   // like the classic survivors games: at most 6 weapons and 5 passives per run, so level-ups grow what you already have
@@ -808,7 +825,7 @@ function makeOffers() {
 function slotsUsed() { return [WEAPONS.filter(id => G.weapons[id]).length, PASSIVES.filter(id => G.passives[id]).length]; }
 function levelPool() {
   const [nW, nP] = slotsUsed(), pool = [];
-  for (const id of WEAPONS.concat(PASSIVES)) { const l = lvOf(id); if (l < MAXLV[id] && (l || (WEAPONS.includes(id) ? nW < wCapG() && wepOpen(id) : nP < MAX_P))) pool.push(id); }
+  for (const id of WEAPONS.concat(PASSIVES)) { const l = lvOf(id); if ((l < MAXLV[id] || canOver(id)) && (l || (WEAPONS.includes(id) ? nW < wCapG() && wepOpen(id) : nP < MAX_P))) pool.push(id); }
   return pool;
 }
 let offers = [], selIdx = 0, lvOpenT = 0;
@@ -817,15 +834,16 @@ function openLevelUp(force) {
   const t = T(), box = $('cards'); box.innerHTML = '';
   offers.forEach((id, i) => {
     const evo = id.startsWith('evo:'), key = evo ? 'evo_' + id.slice(4) : id, bst = !!BOOST[id];
-    const l = evo || bst ? 0 : lvOf(id), max = evo || bst ? 0 : MAXLV[id] || 0, b = document.createElement('button');
+    const l = evo || bst ? 0 : lvOf(id), max = evo || bst ? 0 : MAXLV[id] || 0, b = document.createElement('button'), ov = !evo && !bst && l >= max && max > 0;
     const cat = evo ? 'c-evo' : bst ? 'c-pass c-boost' : id === 'seal' ? 'c-seal' : PASSIVES.includes(id) || id === 'oyaki' ? 'c-pass' : 'c-wep';
     b.className = `card ${cat}` + (i === 0 ? ' sel' : ''); b.style.animationDelay = (i * 0.07) + 's';
     const [nm, ds] = t.items[key];
     let desc = ds; if (l && id !== 'oyaki') desc = `<b>${id === 'seal' && l < 3 ? t.sealUp : t.up}</b><br>${ds}`;
     let pips = ''; for (let k = 1; k <= max; k++) pips += `<i class="${k <= l ? 'on' : k === l + 1 ? 'next' : ''}"></i>`;
+    if (ov) { pips = `<span class="lvn">Lv ${lvShow(id)} → ${lvShow(id) + 1}</span>`; desc = `<b>${t.up}</b><br>${RUN_T[lang].overUp}`; }
     if (bst) desc += `<br><b class="stk">${PT().stack.replace('{n}', G.boost[id] || 0)}</b>`;
     const tag = evo ? `<span class="new evo">${t.evoTag}</span>` : bst ? `<span class="new boost">${PT().boostTag}</span>` : !l && id !== 'oyaki' ? `<span class="new">${t.newTag}</span>` : '';
-    if (!evo && WEAPONS.includes(id) && l + 1 >= MAXLV[id]) desc += `<br><span class="eh">★ ${PT().evoHint}</span>`;
+    if (!evo && WEAPONS.includes(id) && l + 1 >= MAXLV[id] && !G.evo[id]) desc += `<br><span class="eh">★ ${PT().evoHint}</span>`;
     b.innerHTML = `<span class="key">${i + 1}</span>${tag}
       <div class="art"><img src="${ICON[key]}" alt=""></div>
       <div class="hd"><div class="nm">${nm}</div><div class="pips">${pips}</div></div><div class="ds">${desc}</div>`;
@@ -852,7 +870,8 @@ function pick(i) {
 }
 function grantItem(id) {
   if (WEAPONS.includes(id)) {
-    const was = G.weapons[id] || 0; G.weapons[id] = Math.min(MAXLV[id], was + 1); // stat tables stop at MAXLV
+    const was = G.weapons[id] || 0; if (canOver(id)) { G.over[id] = (G.over[id] || 0) + 1; overStats(); return; }
+    G.weapons[id] = Math.min(MAXLV[id], was + 1); // stat tables stop at MAXLV
     if (was < MAXLV[id] && G.weapons[id] >= MAXLV[id] && !G.evo[id]) setTimeout(() => { if (G && state === 'play') banner(PT().evoSoon.replace('{n}', T().items[id][0]), 'stage'); }, 300);
     if (id === 'seal' && G.seals.length < 3) { addSeal(); banner(T().sealJoin); Snd.fx.seal(); burst(G.p.x, G.p.y, [0xffffff, 0xc9d3df, 0x6ec3ff], 18, 70, 1, 8); }
   } else if (BOOST[id]) {
@@ -860,6 +879,7 @@ function grantItem(id) {
     if (id === 'b_hp') { p.maxHp += 5; heal(5); } else if (id === 'b_spd') p.speed *= 1.02; else if (id === 'b_mag') p.magnet *= 1.05; else if (id === 'b_coin') { G.picked += 10; Snd.fx.coin(); }
   } else if (id === 'oyaki') heal(25);
   else {
+    if (canOver(id)) { const k = G.over[id] || 0; G.over[id] = k + 1; const hp = overOwn(id, k); if (hp) heal(hp); overStats(); return; }
     G.passives[id] = Math.min(MAXLV[id] || 3, (G.passives[id] || 0) + 1);
     if (id === 'pannier') { G.p.maxHp += 20; heal(20); }
     if (id === 'shoes') G.p.speed *= 1.1;
@@ -901,7 +921,7 @@ function update(dt) {
   if (G.char === 'ranger') { const rc = Math.floor(G.t / 30) % 5; if (rc !== G.rc) { G.rc = rc; banner(T().rangerCol[rc], 'stage'); G.henshin = 0.5; burst(p.x, p.y, [RANGER_HEX[rc], 0xffffff], 24, 90, 1.4, 16); Snd.fx.beam(); } G.spr = 'kr' + G.rc; }
   const rc = G.char === 'ranger' ? G.rc : -1;
   G.dm = G.dmgMul * (1 + 0.06 * (G.passives.suzuri || 0)) * 1.03 ** (G.boost.b_atk || 0) * (rc === 0 ? 1.2 : 1);
-  G.cdm = G.cdMul * (rc === 1 ? 0.85 : 1) * (1 - 0.06 * (G.passives.metro || 0)) * (1 - 0.01 * (G.boost.b_cd || 0)); G.area = Math.min(1.3, 1 + 0.07 * (G.passives.gobelt || 0)) * (1 + 0.03 * (G.boost.b_area || 0));
+  G.cdm = G.cdMul * (rc === 1 ? 0.85 : 1) * (1 - 0.06 * (G.passives.metro || 0)) * (1 - 0.01 * (G.boost.b_cd || 0)); G.area = Math.min(1.3, 1 + 0.07 * (G.passives.gobelt || 0)) * (1 + 0.03 * (G.boost.b_area || 0)) * (G.overArea || 1); G.dm *= G.overDm || 1;
   const magnet = p.magnet * (rc === 2 ? 1.4 : 1);
   if (rc === 3 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.5 * dt);
   if (G.passives.nodoame && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 0.5 * G.passives.nodoame * dt);
@@ -1395,7 +1415,7 @@ function layoutHud() {
 addEventListener('resize', () => { if (G) layoutHud(); });
 function refreshWeps() {
   const box = $('weps'); box.innerHTML = '';
-  for (const id of WEAPONS.concat(PASSIVES)) { const l = lvOf(id); if (!l) continue; const evo = G.evo[id], d = document.createElement('div'); d.className = 'w' + (PASSIVES.includes(id) ? ' pas' : '') + (evo ? ' evo' : ''); d.innerHTML = `<img src="${ICON[evo ? 'evo_' + id : id]}" alt=""><b>${evo ? '★' : l}</b>`; box.appendChild(d); }
+  for (const id of WEAPONS.concat(PASSIVES)) { const l = lvOf(id); if (!l) continue; const evo = G.evo[id], d = document.createElement('div'); d.className = 'w' + (PASSIVES.includes(id) ? ' pas' : '') + (evo ? ' evo' : ''); const o = G.over[id] || 0; d.innerHTML = `<img src="${ICON[evo ? 'evo_' + id : id]}" alt=""><b${o ? ' class="ov"' : ''}>${evo ? (o ? '★' + (l + o) : '★') : l + o}</b>`; box.appendChild(d); }
   for (const id of BOOST_IDS) { const n = G.boost[id]; if (!n || id === 'b_coin') continue; const d = document.createElement('div'); d.className = 'w bst'; d.title = T().items[id][0]; d.innerHTML = `<img src="${ICON[id]}" alt=""><b>×${n}</b>`; box.appendChild(d); }
   box.classList.toggle('many', box.children.length > 16); // compact icons once the list gets long
   const [nW, nP] = slotsUsed(); if (nW >= wCapG() || nP >= MAX_P) { const f = document.createElement('span'); f.className = 'sfull'; f.id = 'slotsfull'; f.textContent = PT().slotsFull; box.appendChild(f); }
@@ -1604,7 +1624,7 @@ function endGame(won) {
   $('end').className = 'ol panel ' + (cleared ? 'won' : 'lost');
   $('e-title').innerHTML = cleared ? `<img src="${dataURL('berry', 4)}">${t.win}<img src="${dataURL('seal0', 3)}">` : t.over;
   $('e-msg').innerHTML = cleared ? t.winSub : t.overSub;
-  if (G.road) { $('e-title').textContent = P6T().endTitle; $('e-msg').textContent = P6T().endLine.replace('{y}', G.t >= 1200 ? '∞' : 2007 + Math.floor(G.t / 60)).replace('{n}', G.lap); }
+  if (G.road) { $('e-title').textContent = P6T().endTitle; $('e-msg').textContent = P6T().endLine.replace('{y}', G.t >= ENC_T ? '∞' : geirekiY()).replace('{n}', G.lap); }
   const s = Math.floor(G.t);
   $('e-stats').innerHTML = `<div><small>${t.time}</small><b>${fmtTime(s)}</b></div><div><small>${t.level}</small><b>${G.lvl}</b></div><div><small>${t.kills}</small><b>${G.kills}</b></div><div><small>${t.seals}</small><b>${G.seals.length}</b></div>`;
   let coins = `<b>${m.earned.replace('{n}', G.coinsBanked)}</b><small class="dline d${G.di}">${PT().resDiff.replace('{d}', DIFF[G.diff].icon + ' ' + DIFF[G.diff][lang][0]).replace('{m}', DIFF[G.diff].coin)}</small>`;
@@ -1748,7 +1768,7 @@ function snapRun() {
   return { id: G.runId, stage: G.sid, char: G.char, diff: G.diff, endless: !!G.endless, cleared: !!G.cleared, boosted: !!G.boosted, bossAlive: !!G.boss,
     t: Math.floor(G.t), lvl: G.lvl, xp: G.xp / G.xpNext, hp: G.p.hp / G.p.maxHp, pending: G.pending, kills: G.kills, picked: G.picked, banked: G.coinsBanked,
     bossKills: G.bossKills, nextBoss: G.boss ? G.t : G.nextBoss, revives: G.revives, hamN: G.hamN || 0, misN: G.misN || 0, misOk: G.misOk || 0,
-    weapons: G.weapons, evo: G.evo, passives: G.passives, boost: G.boost, sp: G.sp || 0 };
+    weapons: G.weapons, evo: G.evo, passives: G.passives, boost: G.boost, over: G.over, sp: G.sp || 0 };
 }
 const runCode = () => encodeRun(snapRun());
 function saveRun() { if (!G || !G.runId || !['play', 'paused', 'levelup', 'chest'].includes(state)) return; try { localStorage.setItem(RUN_KEY, runCode()); } catch (e) { } }
@@ -1763,6 +1783,7 @@ function runProblem(r) {
   for (const id in r.weapons) { const ws = W_STAGE[id]; if (ws && !(r.stage === ws || r.stage === 'road' || stageCleared(profile, ws) || (START_W[r.char] || []).includes(id))) return 'locked'; }
   if (!r.boosted && (Object.keys(r.weapons).length > wCap(r.endless, r.t, WEAPONS.filter(id => { const ws = W_STAGE[id]; return !ws || r.weapons[id] || r.stage === ws || r.stage === 'road' || stageCleared(profile, ws) || (START_W[r.char] || []).includes(id); }).length) || Object.keys(r.passives).length > MAX_P)) return 'check';
   for (const id in r.boost) if (r.boost[id] > BOOST[id].cap) return 'check';
+  for (const id in r.over || {}) if (r.over[id] && (!r.endless || !(r.weapons[id] || r.passives[id]) || (r.weapons[id] || r.passives[id]) < MAXLV[id])) return 'check'; // levels past MAX only in endless
   if (r.kills > r.t * 40 + 100 || r.picked > r.t * 4 + 300 || r.bossKills > 1 + r.t / 60) return 'check';
   if (r.banked > runCoins({ picked: r.picked, time: r.t, kills: r.kills, won: r.cleared, bosses: r.bossKills, diff: r.diff }, profile)) return 'check';
   return null;
@@ -1775,16 +1796,19 @@ function applyRun(r) {
   G.cleared = G.clearCounted = r.cleared; G.boosted = r.boosted; if (r.endless) G.endless = true;
   G.weapons = Object.assign({}, r.weapons); G.evo = Object.assign({}, r.evo); G.evoN = Object.keys(G.evo).length;
   G.seals = []; const ns = G.evo.seal ? 5 : Math.min(3, G.weapons.seal || 0); for (let i = 0; i < ns; i++) addSeal();
-  G.passives = Object.assign({}, r.passives); G.boost = Object.assign({}, r.boost);
+  G.passives = Object.assign({}, r.passives); G.boost = Object.assign({}, r.boost); G.over = {};
+  for (const id in r.over || {}) if (lvOf(id) >= MAXLV[id] && r.over[id] > 0) G.over[id] = r.over[id];
   const P = G.passives, B = G.boost;
   p.maxHp += 20 * (P.pannier || 0) + 5 * (B.b_hp || 0); p.speed *= 1.1 ** (P.shoes || 0) * 1.02 ** (B.b_spd || 0); p.magnet *= 1.35 ** (P.ribbon || 0) * 1.05 ** (B.b_mag || 0);
+  for (const id in G.over) if (PASSIVES.includes(id)) for (let k = 0; k < G.over[id]; k++) overOwn(id, k); overStats();
   p.hp = Math.max(1, Math.round(r.hp * p.maxHp)); p.inv = 2;
   G.rc = Math.floor(G.t / 30) % 5; G.nextPick = G.t + 20; G.safe = 0;
   if (r.bossAlive) { G.bossDone = false; G.nextBoss = G.t + 3; } else { G.nextBoss = r.nextBoss; G.bossDone = r.bossKills > 0; }
   let g = G.stage;
   if (G.road) {
-    const era = Math.floor(G.t / 300), i = era % 6, l = G.t - era * 300; G.eraN = era; G.lap = Math.floor(era / 6) + 1; G.eraT0 = era * 300; G.D = eraDef(i, G.lap);
-    G.rw = { 60: l >= 60 ? 1 : 0, 150: l >= 150 ? 1 : 0, 240: l >= 240 ? 1 : 0 }; G.towelAt = i === 2 && l < 120 ? G.eraT0 + 120 : 0; G.clrRoad = lt(WIN_T) ? 1 : 0; G.enc = lt(1200) ? 1 : 0; g = G.D.g;
+    // the era comes from the time with today's era length (older codes saved with 5-minute eras just land in a later era)
+    const era = Math.floor(G.t / ERA_T), i = era % 6, l = G.t - era * ERA_T; G.eraN = era; G.lap = Math.floor(era / 6) + 1; G.eraT0 = era * ERA_T; G.D = eraDef(i, G.lap);
+    G.rw = {}; for (const w of ERA_WAVES) G.rw[w] = l >= w ? 1 : 0; G.towelAt = i === 2 && l < ERA_TOWEL ? G.eraT0 + ERA_TOWEL : 0; G.clrRoad = lt(WIN_T) ? 1 : 0; G.enc = lt(ENC_T) ? 1 : 0; g = G.D.g;
   } else for (const w of [60, 150, 240]) G.waves[w] = lt(w) ? 1 : 0;
   if (G.endless) G.eliteWaveT = Math.max(G.t + 60, G.road ? WIN_T : 0);
   if (G.sid === 'runway' && lt(150)) { G.night = 1; g = SDEF.runway.night; }
@@ -1893,9 +1917,12 @@ function look6() {
   for (const key in A) DAWN_L[key] = Array.isArray(A[key]) ? A[key].map((v, i) => v + (B[key][i] - v) * k) : A[key] + (B[key] - A[key]) * k;
   return DAWN_L;
 }
+// 20周年への道 ∞: six eras per lap, ERA_T seconds each. The era's enemy mix and its three waves are the stage's own 5-minute
+// schedule squeezed into the shorter era; the 芸歴 counter reaches 2027 (encore) when the first lap ends.
+const ERA_T = 180, ERA_K = ERA_T / 300, ERA_WAVES = [60, 150, 240].map(w => Math.round(w * ERA_K)), ERA_TOWEL = Math.round(120 * ERA_K), ENC_T = 6 * ERA_T;
 function eraDef(i, lap) {
   const E = ERAS[i], boss = E.boss[(lap - 1) % E.boss.length];
-  return { g: E.g, song: E.song, boss, summon: BOSS_SUMMON[boss] || 'pumpk', waves: E.mix(300).map(w => w[0]).slice(0, 3), mix: t => E.mix(Math.min(300, t - G.eraT0 + 60)) };
+  return { g: E.g, song: E.song, boss, summon: BOSS_SUMMON[boss] || 'pumpk', waves: E.mix(300).map(w => w[0]).slice(0, 3), mix: t => E.mix(Math.min(300, (t - G.eraT0) / ERA_K + 60)) };
 }
 function newGame6(ch) {
   const p = G.p;
@@ -1933,24 +1960,25 @@ function tick6(dt) {
   if (G.road) road6();
 }
 function road6() {
-  const p = G.p, pt = P6T(), era = Math.floor(G.t / 300), i = era % 6, lap = Math.floor(era / 6) + 1;
+  const p = G.p, pt = P6T(), era = Math.floor(G.t / ERA_T), i = era % 6, lap = Math.floor(era / 6) + 1;
   if (era !== G.eraN) {
-    G.eraN = era; G.lap = lap; G.eraT0 = era * 300; G.D = eraDef(i, lap); G.rw = {};
+    G.eraN = era; G.lap = lap; G.eraT0 = era * ERA_T; G.D = eraDef(i, lap); G.rw = {};
     if (G.stage !== G.D.g) setGround(G.D.g); if (!G.boss) Snd.playSong(G.D.song);
     banner(pt.eraBanner.replace('{n}', lap).replace('{e}', pt.era[i]), 'stage'); if (lap >= 2) achNote('loop2');
-    if (i === 2) G.towelAt = G.eraT0 + 120; // the towel comes once per loop
+    if (i === 2) G.towelAt = G.eraT0 + ERA_TOWEL; // the towel comes once per loop
   }
   const lt = G.t - G.eraT0;
-  for (const wt of [60, 150, 240]) if (!G.rw[wt] && lt >= wt) {
+  for (const wt of ERA_WAVES) if (!G.rw[wt] && lt >= wt) {
     G.rw[wt] = 1; banner(PT().st.road.wave);
-    const type = G.D.waves[[60, 150, 240].indexOf(wt)], n = makeRoom(Math.round(32 * G.df.dens));
+    const type = G.D.waves[ERA_WAVES.indexOf(wt)], n = makeRoom(Math.round(32 * G.df.dens));
     for (let k = 0; k < n; k++) { const a = k / n * TAU; spawnEnemy(type, p.x + Math.cos(a) * RD.viewW * 0.45, p.y + Math.sin(a) * RD.viewH * 0.42); }
   }
   if (G.towelAt && G.t >= G.towelAt) { G.towelAt = 0; const a = Math.random() * TAU; G.items.push({ x: p.x + Math.cos(a) * 100, y: p.y + Math.sin(a) * 70, k: 'towel' }); }
   if (!G.clrRoad && G.t >= WIN_T) { G.clrRoad = 1; achNote('clearRoad'); }
-  if (!G.enc && G.t >= 1200) { G.enc = 1; banner(pt.encore, 'stage'); achNote('encore'); burst(p.x, p.y, [0xffd94a, 0xffffff, 0xff7eb6, 0x6ec3ff], 60, 160, 1.6, 20); Snd.fx.cheat(); }
+  if (!G.enc && G.t >= ENC_T) { G.enc = 1; banner(pt.encore, 'stage'); achNote('encore'); burst(p.x, p.y, [0xffd94a, 0xffffff, 0xff7eb6, 0x6ec3ff], 60, 160, 1.6, 20); Snd.fx.cheat(); }
 }
-const geireki = () => G.t >= 1200 ? P6T().geirekiInf : P6T().geireki.replace('{y}', 2007 + Math.floor(G.t / 60));
+const geirekiY = () => 2007 + Math.floor(G.t / (ENC_T / 20)); // 20 years per lap
+const geireki = () => G.t >= ENC_T ? P6T().geirekiInf : P6T().geireki.replace('{y}', geirekiY());
 function hud6() {
   const pt = P6T(); let s = '';
   if (G.road) s = geireki() + ' · ' + pt.lap.replace('{n}', G.lap);
@@ -2134,7 +2162,7 @@ function drawP6(t) {
   if (G.sid === 'runway' && Math.floor(t * 3) % 4 === 0) { const i = Math.floor(t * 3); RD.glow(0, cx + ((i * 97) % vw) - vw / 2, 30, cz - vh * 0.3, 60, 60, 0, [1, 1, 1], 0.25); }
   if (G.sid === 'cherry') for (let i = 0; i < 20; i++) { const x = cx - vw * 0.6 + ((i * 97.13 + t * 14 * (1 + (i % 3))) % (vw * 1.2)), z = cz - vh * 0.6 + ((i * 53.7) % (vh * 1.1)), h = 120 - ((t * (16 + (i % 5) * 3) + i * 37) % 120); RD.spr(R['petal' + (i % 3)], x + Math.sin(t * 1.5 + i) * 10, h, z, { sh: 0, em: 0.3, s: 0.5 + (i % 3) * 0.12 }, RD.ov); }
   if (G.sid === 'okinawa') for (let i = 0; i < 4; i++) { const a = t * (0.3 + i * 0.1) + i * 1.9, x = cx + Math.cos(a) * vw * 0.34, z = cz + Math.sin(a * 1.2) * vh * 0.28; RD.glow(0, x, 0.4, z, 120, 70, 0, [0.5, 0.9, 1], 0.14, true); }
-  if (G.road && G.t >= 1200) for (let i = 0; i < 3; i++) { const a = t * (0.5 + i * 0.17) + i * 2.1, x = cx + Math.cos(a) * vw * 0.3, z = cz + Math.sin(a * 1.3) * vh * 0.25; RD.glow(0, x, 0.4, z, 120, 90, 0, NIGHT_COL[i], 0.22, true); }
+  if (G.road && G.t >= ENC_T) for (let i = 0; i < 3; i++) { const a = t * (0.5 + i * 0.17) + i * 2.1, x = cx + Math.cos(a) * vw * 0.3, z = cz + Math.sin(a * 1.3) * vh * 0.25; RD.glow(0, x, 0.4, z, 120, 90, 0, NIGHT_COL[i], 0.22, true); }
 }
 const UNL6 = { clearChina: (UNL.clearChina || []).concat('stage:halloween') };
 for (let i = 9; i < STAGE_IDS.length - 1; i++) { const a = 'clear' + STAGE_IDS[i][0].toUpperCase() + STAGE_IDS[i].slice(1); UNL6[a] = (UNL[a] || []).concat('stage:' + STAGE_IDS[i + 1]); }
